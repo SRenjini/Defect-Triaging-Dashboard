@@ -130,7 +130,7 @@ azure-cosmos>=4.5.0    # Cosmos DB SQL API client
 ### 1. Azure Cosmos DB (Data Source)
 
 - **Endpoint:** Configured via `COSMOS_ENDPOINT` environment variable
-- **Database:** `tcaDB`
+- **Database:** `***`
 - **Container:** `reg_documents` (partitioned by `entity_type`)
 - **Queries:** 5 entity types fetched in sequence:
   1. `Document` — Tax document metadata (entity, year, revision, forms)
