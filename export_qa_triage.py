@@ -16,11 +16,10 @@ KEY = os.environ.get("COSMOS_KEY", "")
 DATABASE = os.environ.get("COSMOS_DATABASE", "tcaDB")
 CONTAINER = os.environ.get("COSMOS_CONTAINER", "reg_documents")
 
-if not ENDPOINT or not KEY:
-    print("ERROR: COSMOS_ENDPOINT and COSMOS_KEY environment variables must be set.")
-    print("Copy .env.example to .env and fill in your credentials, then run:")
-    print("  set /a < .env  (Windows) or  export $(cat .env | xargs)  (Linux/Mac)")
-    sys.exit(1)
+if not ENDPOINT or not KEY or "PASTE_YOUR" in (ENDPOINT + KEY):
+    print("NOT_CONFIGURED: COSMOS_ENDPOINT and COSMOS_KEY environment variables must be set.")
+    print("Copy .env.example to .env and fill in your credentials.")
+    sys.exit(3)
 
 client = CosmosClient(ENDPOINT, KEY)
 database = client.get_database_client(DATABASE)

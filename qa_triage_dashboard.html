@@ -889,7 +889,11 @@
                 apply();
             }
 
-            if (json.no_data) {
+            if (json.not_configured) {
+                banner.style.background = '#374151';
+                banner.textContent = '🔒 Cosmos credentials not configured — showing cached data. Fill in .env to enable live refresh.';
+                setTimeout(() => banner.remove(), 6000);
+            } else if (json.no_data) {
                 banner.style.background = '#92400e';
                 banner.textContent = '⚠️ No TRC data in QA Cosmos yet — showing last cached snapshot (' + (DATA ? DATA.summary.total_trcs + ' TRCs' : 'none') + ').';
                 setTimeout(() => banner.remove(), 8000);

@@ -84,6 +84,23 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 }).encode())
                 self.log_message("No TRC data in Cosmos, returning cached JSON")
                 self.log_message("Data refresh completed successfully")
+            elif result.returncode == 3:
+                # Exit code 3 = Cosmos credentials not configured. Return cached data silently.
+                fresh_data = None
+                if os.path.exists(data_file):
+                    with open(data_file, 'r', encoding='utf-8') as f:
+                        fresh_data = json.load(f)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'success': False,
+                    'not_configured': True,
+                    'message': 'Cosmos credentials not set — showing cached data. Fill in .env to enable live refresh.',
+                    'data': fresh_data
+                }).encode())
+                self.log_message("Cosmos credentials not configured, returning cached JSON")
             else:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
