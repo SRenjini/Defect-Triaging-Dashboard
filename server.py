@@ -9,6 +9,18 @@ import json
 import sys
 import os
 
+# ── Auto-load .env from script directory ──────────────────────────────────────
+# This means the server works correctly whether started via start_server.bat,
+# PowerShell, or VS Code — no manual env var setup needed.
+_env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+if os.path.exists(_env_file):
+    with open(_env_file, encoding='utf-8') as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 # Change to the Mock Screens root (parent of this script's directory) so static files
 # are served from the same root as the VS Code http.server task.
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
