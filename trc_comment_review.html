@@ -1,0 +1,1000 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRC Comment Review ΓÇö Prod Feedback</title>
+    <style>
+        :root {
+            --primary: #00457C;
+            --primary-light: #003057;
+            --green: #76B900;
+            --accent: #0088CE;
+            --danger: #D32F2F;
+            --warning: #F9A825;
+            --success: #388E3C;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #333;
+            --text-muted: #666;
+            --border: #e0e0e0;
+            --radius: 10px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* ΓöÇΓöÇ Header ΓöÇΓöÇ */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff; padding: 1.25rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 600; }
+        .header p  { opacity: .85; font-size: .85rem; margin-top: .15rem; }
+        .header-right { text-align: right; font-size: .8rem; opacity: .8; }
+
+        /* ΓöÇΓöÇ Summary Cards ΓöÇΓöÇ */
+        .summary-cards {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+            gap: 1rem; padding: 1.5rem 2rem 0;
+        }
+        .s-card {
+            background: var(--card-bg); border-radius: var(--radius);
+            padding: 1.2rem; text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            border-top: 3px solid var(--border);
+        }
+        .s-card .val { font-size: 2.2rem; font-weight: 700; color: var(--primary); }
+        .s-card .lbl { color: var(--text-muted); font-size: .82rem; margin-top: .3rem; }
+        .s-card .sub { color: var(--text-muted); font-size: .72rem; margin-top: .2rem; opacity: .9; line-height: 1.4; }
+        .s-card .date-range { display: flex; gap: .4rem; align-items: center; justify-content: center; margin-top: .35rem; }
+        .s-card .date-range input { padding: .25rem .4rem; border: 1px solid var(--border); border-radius: 5px; font-size: .72rem; width: 120px; color: var(--text); }
+        .s-card .date-range span { font-size: .7rem; color: var(--text-muted); }
+        .s-card.danger  { border-top-color: var(--danger); }
+        .s-card.danger .val { color: var(--danger); }
+        .s-card.success { border-top-color: var(--success); }
+        .s-card.success .val { color: var(--success); }
+        .s-card.warning { border-top-color: var(--warning); }
+        .s-card.warning .val { color: var(--warning); }
+        .s-card.accent  { border-top-color: var(--accent); }
+        .s-card.accent .val  { color: var(--accent); }
+
+        /* ΓöÇΓöÇ Filter Bar ΓöÇΓöÇ */
+        .filter-bar {
+            display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+            padding: 1rem 2rem; margin-top: .5rem;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 6px;
+            font-size: .85rem; background: #fff; color: var(--text); min-width: 150px;
+        }
+        .filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--accent); }
+        .filter-bar input { min-width: 220px; }
+        .filter-bar .toggle-btn {
+            margin-left: auto; padding: .5rem 1rem; border: 1px solid var(--border);
+            border-radius: 6px; background: #fff; cursor: pointer; font-size: .82rem;
+            color: var(--primary); transition: all .2s;
+        }
+        .filter-bar .toggle-btn:hover { background: var(--primary); color: #fff; }
+        .filter-count { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+
+        /* ΓöÇΓöÇ TRC Card List ΓöÇΓöÇ */
+        .trc-list { padding: 0 2rem 2rem; }
+
+        .trc-card {
+            background: var(--card-bg); border-radius: var(--radius);
+            margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            overflow: hidden; transition: box-shadow .2s;
+        }
+        .trc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+        .trc-card.has-action-needed { border-left: 4px solid var(--danger); }
+
+        /* Card Header */
+        .trc-header {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 1rem 1.25rem; cursor: pointer; user-select: none;
+            transition: background .15s;
+        }
+        .trc-header:hover { background: #f8f9fb; }
+        .trc-header .chevron {
+            font-size: .9rem; color: var(--text-muted);
+            transition: transform .25s; flex-shrink: 0; width: 1.2rem; text-align: center;
+        }
+        .trc-card.open .trc-header .chevron { transform: rotate(90deg); }
+        .trc-header .trc-num {
+            background: var(--primary); color: #fff; width: 28px; height: 28px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: .75rem; font-weight: 600; flex-shrink: 0;
+        }
+        .trc-header .trc-title { font-weight: 600; font-size: .95rem; flex: 1; line-height: 1.35; }
+        .trc-header .trc-meta {
+            display: flex; gap: .5rem; flex-shrink: 0; align-items: center;
+        }
+        .comment-badge {
+            display: inline-flex; align-items: center; gap: .25rem;
+            padding: .2rem .55rem; border-radius: 12px; font-size: .72rem; font-weight: 600;
+        }
+        .comment-badge.has-comments { background: #FFF3E0; color: #E65100; }
+        .comment-badge.no-comments  { background: #E8F5E9; color: #2E7D32; }
+        .approve-badge { background: #E8F5E9; color: #2E7D32; padding: .2rem .55rem; border-radius: 12px; font-size: .72rem; font-weight: 600; }
+        .reject-badge  { background: #FFEBEE; color: #C62828; padding: .2rem .55rem; border-radius: 12px; font-size: .72rem; font-weight: 600; }
+
+        /* Card Body */
+        .trc-body {
+            display: none; padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border);
+        }
+        .trc-card.open .trc-body { display: block; }
+
+        .doc-info {
+            display: flex; gap: 1.5rem; flex-wrap: wrap;
+            font-size: .8rem; color: var(--text-muted); padding: .75rem 0;
+        }
+        .doc-info span { display: flex; align-items: center; gap: .3rem; }
+
+        /* Field Row */
+        .fields-grid { margin-top: .75rem; display: flex; flex-direction: column; gap: .75rem; }
+
+        .field-row {
+            border: 1px solid var(--border); border-radius: 8px;
+            overflow: hidden;
+        }
+        .field-row.has-comment { border-left: 3px solid var(--warning); }
+        .field-row.no-comment  { border-left: 3px solid #e0e0e0; }
+
+        .field-header {
+            display: flex; align-items: center; gap: .75rem;
+            padding: .65rem 1rem; background: #fafbfc;
+        }
+        .field-name {
+            font-weight: 600; font-size: .85rem; min-width: 160px; text-transform: capitalize;
+        }
+        .field-name .field-label { color: var(--primary); }
+        .status-pill {
+            padding: .15rem .55rem; border-radius: 10px; font-size: .72rem; font-weight: 600;
+        }
+        .status-pill.approved     { background: #E8F5E9; color: #2E7D32; }
+        .status-pill.not-approved { background: #FFEBEE; color: #C62828; }
+        .status-pill.unknown      { background: #F5F5F5; color: #999; }
+
+        /* Side-by-side: generated content + comment */
+        .field-side-by-side {
+            display: grid; grid-template-columns: 1fr 1fr;
+            border-top: 1px solid var(--border);
+        }
+        @media (max-width: 900px) { .field-side-by-side { grid-template-columns: 1fr; } }
+
+        .field-pane {
+            padding: .75rem 1rem; font-size: .83rem; line-height: 1.55;
+            white-space: pre-wrap; overflow-y: auto; max-height: 260px;
+        }
+        .field-pane .pane-label {
+            font-size: .7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .04em; margin-bottom: .4rem;
+        }
+        .field-pane.generated {
+            background: #f5f7fa; color: #555;
+            border-right: 1px solid var(--border);
+        }
+        .field-pane.generated .pane-label { color: var(--accent); }
+        .field-pane.comment-pane {
+            background: #FFFDE7;
+        }
+        .field-pane.comment-pane .pane-label { color: #E65100; }
+        .field-pane.no-content {
+            color: #bbb; font-style: italic; display: flex; align-items: center;
+        }
+
+        .no-comment-msg { padding: .5rem 1rem; font-size: .8rem; color: #aaa; font-style: italic; }
+
+        /* Tags */
+        .tags-row { display: flex; flex-wrap: wrap; gap: .35rem; padding: .5rem 1rem; }
+        .tag-pill {
+            padding: .15rem .5rem; border-radius: 10px; font-size: .68rem; font-weight: 600;
+            cursor: pointer; transition: opacity .15s;
+        }
+        .tag-pill:hover { opacity: .8; }
+        .tag-pill[data-tag="Form Mapping Error"]    { background: #E8F5E9; color: #1B5E20; }
+        .tag-pill[data-tag="Before/After Unhelpful"]{ background: #FFF3E0; color: #E65100; }
+        .tag-pill[data-tag="Worksheet Context"]     { background: #E3F2FD; color: #0D47A1; }
+        .tag-pill[data-tag="Structural/Format"]     { background: #F3E5F5; color: #6A1B9A; }
+        .tag-pill[data-tag="Should Combine"]        { background: #FCE4EC; color: #880E4F; }
+        .tag-pill[data-tag="Line Reference Error"]  { background: #E0F7FA; color: #006064; }
+        .tag-pill[data-tag="Calculation Impact"]    { background: #FFF8E1; color: #F57F17; }
+        .tag-pill[data-tag="Missing Information"]   { background: #EDE7F6; color: #4527A0; }
+        .tag-pill[data-tag="Context Relevance"]     { background: #E8EAF6; color: #283593; }
+        .tag-pill[data-tag="Unnecessary Content"]   { background: #FFEBEE; color: #B71C1C; }
+        .tag-pill[data-tag="Length/Verbosity"]       { background: #FFF3E0; color: #BF360C; }
+
+
+
+        /* Action buttons */
+        .action-row {
+            display: flex; gap: .5rem; padding: .5rem 1rem; justify-content: flex-end; border-top: 1px solid #f0f0f0;
+        }
+
+        /* ADO Modal */
+        .ado-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,.55); z-index: 1000;
+            display: flex; align-items: center; justify-content: center; padding: 1rem;
+        }
+        .ado-modal-content {
+            background: #fff; border-radius: 10px; width: 100%; max-width: 680px;
+            max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.3);
+            animation: fadeIn .15s ease;
+        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+        .ado-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 1.25rem; border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+        .ado-header h3 { font-size: 1rem; color: var(--primary); }
+        .ado-close { font-size: 1.4rem; cursor: pointer; color: #999; line-height: 1; }
+        .ado-close:hover { color: var(--danger); }
+        .ado-field { padding: .6rem 1.25rem; }
+        .ado-field label { display: block; font-size: .75rem; font-weight: 600; color: var(--text-muted); margin-bottom: .25rem; text-transform: uppercase; }
+        .ado-field input, .ado-field textarea, .ado-field select {
+            width: 100%; padding: .45rem .6rem; border: 1px solid var(--border);
+            border-radius: 6px; font-size: .85rem; font-family: inherit;
+        }
+        .ado-field input:focus, .ado-field textarea:focus, .ado-field select:focus {
+            outline: none; border-color: var(--accent);
+        }
+        .ado-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+        .ado-actions {
+            display: flex; justify-content: flex-end; gap: .75rem;
+            padding: .75rem 1.25rem; border-top: 1px solid #e0e0e0; background: #f8f9fa;
+        }
+        .ado-btn-create {
+            padding: .5rem 1.25rem; background: var(--primary); color: #fff;
+            border: none; border-radius: 6px; font-size: .85rem; cursor: pointer; font-weight: 600;
+        }
+        .ado-btn-create:hover { background: var(--primary-light); }
+        .ado-btn-cancel {
+            padding: .5rem 1.25rem; background: #fff; color: var(--text);
+            border: 1px solid var(--border); border-radius: 6px; font-size: .85rem; cursor: pointer;
+        }
+        .ado-btn-cancel:hover { background: #f0f0f0; }
+        .create-bug-btn {
+            background: var(--danger); color: white; border: none;
+            padding: .3rem .8rem; border-radius: 6px; font-size: .75rem; cursor: pointer; font-weight: 600;
+        }
+        .create-bug-btn:hover { opacity: .85; }
+        .desc-preview {
+            border: 1px solid var(--border); border-radius: 6px;
+            padding: .5rem .75rem; font-size: .82rem; max-height: 260px; overflow-y: auto;
+            background: #f9f9f9;
+        }
+        .desc-section { margin-bottom: .5rem; }
+        .desc-label { font-weight: 700; font-size: .72rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: .25rem; }
+        .desc-highlight { background: #fff3cd; padding: .3rem .5rem; border-radius: 4px; font-size: .82rem; white-space: pre-wrap; }
+        .desc-comment { background: #f8d7da; padding: .3rem .5rem; border-radius: 4px; font-size: .82rem; font-style: italic; }
+        .desc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .25rem; }
+        .desc-grid-item { padding: .2rem; }
+        .gk { font-weight: 600; color: var(--text-muted); }
+        .gv { color: var(--text); }
+        .ado-success-content { padding: 1.25rem; }
+        .ado-success-content p { margin-bottom: .5rem; font-size: .9rem; }
+        .ado-success-content code { background: #f0f0f0; padding: .15rem .4rem; border-radius: 4px; font-size: .9rem; }
+
+        /* Tag summary bar */
+        .tag-summary {
+            display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem 2rem;
+        }
+        .tag-summary-pill {
+            display: flex; align-items: center; gap: .35rem;
+            padding: .35rem .65rem; border-radius: 14px; font-size: .75rem; font-weight: 600;
+            cursor: pointer; transition: all .15s; border: 2px solid transparent;
+        }
+        .tag-summary-pill:hover { opacity: .85; }
+        .tag-summary-pill.active { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,69,124,.15); }
+        .tag-summary-pill .tcount {
+            background: rgba(255,255,255,.7); border-radius: 10px;
+            padding: .05rem .4rem; font-size: .68rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .summary-cards { grid-template-columns: repeat(2, 1fr); padding: 1rem; }
+            .filter-bar { padding: .75rem 1rem; }
+            .trc-list { padding: 0 1rem 1rem; }
+            .tag-summary { padding: .5rem 1rem; }
+            .trc-header .trc-meta { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>TRC Comment Review</h1>
+            <p>Production Feedback ΓÇö Per-Field Classification &amp; Action</p>
+        </div>
+        <div class="header-right">
+            <div id="srcLabel">Source: Prod_Feedback.xlsx</div>
+            <div id="genDate"></div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards" id="summaryCards"></div>
+
+    <!-- Tag Summary -->
+    <div class="tag-summary" id="tagSummary"></div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <select id="filterField">
+            <option value="">All Fields</option>
+            <option value="context">Context</option>
+            <option value="system_inference">System Inference</option>
+            <option value="tax_rule_change">Tax Rule Change</option>
+            <option value="category">Category</option>
+        </select>
+        <select id="filterStatus">
+            <option value="">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="NotApproved">Not Approved</option>
+        </select>
+        <select id="filterTag">
+            <option value="">All Tags</option>
+        </select>
+        <select id="filterCommentsOnly">
+            <option value="">All TRCs</option>
+            <option value="yes" selected>With Comments Only</option>
+            <option value="no">No Comments</option>
+        </select>
+        <input type="text" id="searchBox" placeholder="Search comments or TRC namesΓÇª">
+        <span class="filter-count" id="filterCount"></span>
+        <button class="toggle-btn" id="toggleAll">Expand All</button>
+    </div>
+
+    <!-- TRC Cards -->
+    <div class="trc-list" id="trcList"></div>
+
+    <script>
+    let DATA = null;
+    let allExpanded = false;
+
+    // Field display name
+    const FIELD_LABELS = {
+        context: 'Context',
+        system_inference: 'System Inference',
+        tax_rule_change: 'Tax Rule Change',
+        category: 'Category'
+    };
+
+    // ΓöÇΓöÇ Render Summary Cards ΓöÇΓöÇ
+    function renderSummary(data) {
+        const s = data.summary;
+        // Compute approval breakdown
+        const totalFields = s.total_fields_reviewed || (s.total_trcs * 4);
+        const approvedCount = Object.values(s.field_status || {}).reduce((sum, f) => sum + (f.Approved || 0), 0);
+        const rejectedCount = totalFields - approvedCount;
+        // Unique document count
+        const uniqueDocs = new Set(data.trcs.map(t => t.document_id)).size;
+
+        const container = document.getElementById('summaryCards');
+        container.innerHTML = `
+            <div class="s-card">
+                <div class="val">${s.total_trcs}</div>
+                <div class="lbl">Total TRCs</div>
+            </div>
+            <div class="s-card">
+                <div class="val">${uniqueDocs}</div>
+                <div class="lbl">Documents</div>
+                <div class="date-range">
+                    <input type="date" id="dateFrom" title="From date">
+                    <span>ΓÇö</span>
+                    <input type="date" id="dateTo" title="To date">
+                </div>
+            </div>
+            <div class="s-card warning">
+                <div class="val">${s.total_comments}</div>
+                <div class="lbl">Fields with Comments</div>
+            </div>
+            <div class="s-card ${s.overall_approval_rate >= 70 ? 'success' : 'danger'}">
+                <div class="val">${s.overall_approval_rate}%</div>
+                <div class="lbl">Approval Rate</div>
+                <div class="sub">${approvedCount} approved / ${totalFields} fields reviewed<br>${rejectedCount} rejected</div>
+            </div>
+            <div class="s-card accent">
+                <div class="val" style="font-size:1rem">${s.top_issue}</div>
+                <div class="lbl">Top Issue Tag</div>
+            </div>
+        `;
+        document.getElementById('genDate').textContent = 'Generated: ' + new Date(data.generated_at).toLocaleDateString();
+    }
+
+    // ΓöÇΓöÇ Render Tag Summary ΓöÇΓöÇ
+    function renderTagSummary(data) {
+        const tags = data.summary.tags_distribution;
+        const tagColors = {
+            'Form Mapping Error': '#E8F5E9', 'Before/After Unhelpful': '#FFF3E0',
+            'Worksheet Context': '#E3F2FD', 'Structural/Format': '#F3E5F5',
+            'Should Combine': '#FCE4EC', 'Line Reference Error': '#E0F7FA',
+            'Calculation Impact': '#FFF8E1', 'Missing Information': '#EDE7F6',
+            'Context Relevance': '#E8EAF6', 'Unnecessary Content': '#FFEBEE',
+            'Length/Verbosity': '#FFF3E0'
+        };
+        const el = document.getElementById('tagSummary');
+        el.innerHTML = Object.entries(tags).map(([tag, count]) =>
+            `<span class="tag-summary-pill" data-tag="${tag}" style="background:${tagColors[tag] || '#f0f0f0'}" onclick="toggleTagFilter('${tag}')">
+                ${tag} <span class="tcount">${count}</span>
+            </span>`
+        ).join('');
+
+        // Populate filterTag dropdown
+        const sel = document.getElementById('filterTag');
+        sel.innerHTML = '<option value="">All Tags</option>' +
+            Object.keys(tags).map(t => `<option value="${t}">${t} (${tags[t]})</option>`).join('');
+    }
+
+    function toggleTagFilter(tag) {
+        const sel = document.getElementById('filterTag');
+        sel.value = sel.value === tag ? '' : tag;
+        // Visual active state
+        document.querySelectorAll('.tag-summary-pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.tag === sel.value);
+        });
+        applyFilters();
+    }
+
+    // ΓöÇΓöÇ Render TRC Cards ΓöÇΓöÇ
+    function renderTRCs(trcs) {
+        const list = document.getElementById('trcList');
+        list.innerHTML = trcs.map(trc => {
+            const fieldNames = ['context', 'system_inference', 'tax_rule_change', 'category'];
+            const commentCount = fieldNames.filter(f => trc.fields[f].comments).length;
+            const notApprovedCount = fieldNames.filter(f => trc.fields[f].status === 'NotApproved').length;
+            const hasAction = commentCount > 0 && notApprovedCount > 0;
+
+            return `<div class="trc-card ${hasAction ? 'has-action-needed' : ''}" data-trc-id="${trc.id}">
+                <div class="trc-header" onclick="toggleCard(this)">
+                    <span class="chevron">&#9654;</span>
+                    <span class="trc-num">${trc.id}</span>
+                    <span class="trc-title">${esc(trc.name)}</span>
+                    <span class="trc-meta">
+                        <span class="comment-badge ${commentCount ? 'has-comments' : 'no-comments'}">
+                            &#128172; ${commentCount} comment${commentCount !== 1 ? 's' : ''}
+                        </span>
+                        ${notApprovedCount ? `<span class="reject-badge">${notApprovedCount} rejected</span>` : ''}
+                    </span>
+                </div>
+                <div class="trc-body">
+                    <div class="doc-info">
+                        <span>&#128196; ${esc(trc.document_id || 'ΓÇö')}</span>
+                        <span>&#128221; ${esc(trc.document_type || 'ΓÇö')}</span>
+                        <span>&#128100; ${esc(shortEmail(trc.created_by))}</span>
+                    </div>
+                    <div class="fields-grid">
+                        ${fieldNames.map(f => renderFieldRow(trc, f)).join('')}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        document.getElementById('filterCount').textContent = `${trcs.length} of ${DATA.trcs.length} TRCs`;
+    }
+
+    function renderFieldRow(trc, fieldName) {
+        const field = trc.fields[fieldName];
+        const hasComment = !!field.comments;
+
+        const statusCls = field.status === 'Approved' ? 'approved' :
+                          field.status === 'NotApproved' ? 'not-approved' : 'unknown';
+        const statusLabel = field.status || 'ΓÇö';
+
+        let html = `<div class="field-row ${hasComment ? 'has-comment' : 'no-comment'}" data-field="${fieldName}">
+            <div class="field-header">
+                <span class="field-name"><span class="field-label">${FIELD_LABELS[fieldName]}</span></span>
+                <span class="status-pill ${statusCls}">${statusLabel}</span>
+            </div>`;
+
+        if (hasComment) {
+            // Side-by-side: AI output (left) | Reviewer comment (right)
+            html += `<div class="field-side-by-side">
+                <div class="field-pane generated ${field.generated_content ? '' : 'no-content'}">
+                    <div class="pane-label">&#129302; System Generated</div>
+                    ${field.generated_content ? esc(field.generated_content) : 'No generated content available'}
+                </div>
+                <div class="field-pane comment-pane">
+                    <div class="pane-label">&#128221; Reviewer Comment</div>
+                    ${esc(field.comments)}
+                </div>
+            </div>`;
+
+            if (field.tags && field.tags.length) {
+                html += `<div class="tags-row">${field.tags.map(t =>
+                    `<span class="tag-pill" data-tag="${t}" onclick="event.stopPropagation(); toggleTagFilter('${t}')">${t}</span>`
+                ).join('')}</div>`;
+            }
+
+            // Action buttons
+            html += `<div class="action-row">
+                <button class="create-bug-btn" onclick="event.stopPropagation(); showBugModal(${trc.id}, '${fieldName}')">
+                    Create ADO
+                </button>
+            </div>`;
+        } else {
+            html += `<div class="no-comment-msg">No comments</div>`;
+        }
+
+        html += `</div>`;
+        return html;
+    }
+
+    // ΓöÇΓöÇ Helpers ΓöÇΓöÇ
+    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function shortEmail(e) { return e ? e.split('@')[0].replace(/\./g, ' ') : 'ΓÇö'; }
+
+    function toggleCard(headerEl) {
+        headerEl.closest('.trc-card').classList.toggle('open');
+    }
+
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // ADO BUG CREATION
+    // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+    // ADO config ΓÇö shared with qa_triage_dashboard via localStorage key 'hrb_ado_config'
+    const ADO_CONFIG = {
+        organization: '',
+        project: '',
+        pat: '',
+        baseUrl: '',
+        areaPath: 'TRC Automation',
+        iterationPath: 'TRC Automation'
+    };
+    // Load saved config from localStorage (shared with qa_triage_dashboard.html)
+    (function loadAdoConfig() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('hrb_ado_config') || 'null');
+            if (saved) Object.assign(ADO_CONFIG, saved);
+        } catch(e) {}
+    })();
+
+    const AL_FORM_NAMES = [
+        '2210AL', '40', '40-Sch D and E', '40-Sch OC', '40ES', '40NR', '40NR-Sch ABDE',
+        '40V', '4506A', '4952A', '8453', '8453OL', 'NOL-85', 'NOL-85A', 'ALEOO',
+        'Sch CR', '40-Sch A, B, and DC', 'BPT-V', 'PPT', 'Sch AATC', 'Sch AAC',
+        'AuthHdr (e-file)', 'RtrnHdr (e-file)', 'Sch W-2', 'W-2 (e-file)',
+        '1099-R (e-file)', 'BPT-NWI', 'Sch DS & HOF', 'Sch KRCC-I', 'Sch CP',
+        'Sch ATP', 'SCH HBC', 'Sch RS', 'QVLI Worksheet', 'Wks Fed Inc Ded (e-file)',
+        '740ES'
+    ];
+
+    function extractFormName(docId) {
+        if (!docId) return '';
+        for (const form of AL_FORM_NAMES) {
+            if (docId.startsWith(form + ' ') || docId.startsWith(form + '-') || docId === form) return form;
+        }
+        const dashIdx = docId.indexOf(' - ');
+        if (dashIdx > 0) return docId.substring(0, dashIdx).trim();
+        const parts = docId.split('_');
+        if (parts.length >= 4) return parts[3];
+        return docId;
+    }
+
+    function assessSeverity(tags) {
+        const critical = ['Form Identification Error', 'Calculation Change Missing', 'Line Reference Inaccuracy', 'Calculation Impact'];
+        const high     = ['Change Type Misclassification', 'Change Completeness', 'Line Reference Error', 'Missing Information'];
+        const medium   = ['Context Irrelevance', 'Section Specificity', 'Context Relevance', 'Form Mapping Error', 'Worksheet Context'];
+        for (const tag of tags) {
+            if (critical.includes(tag)) return '1 - Critical';
+            if (high.includes(tag))     return '2 - High';
+            if (medium.includes(tag))   return '3 - Medium';
+        }
+        return '4 - Low';
+    }
+
+    // Show ADO Bug Modal ΓÇö adapted for trc_comment_review.html data shape
+    function showBugModal(trcId, fieldName) {
+        const trc = DATA.trcs.find(t => t.id === trcId);
+        if (!trc) { alert('TRC not found'); return; }
+
+        const field = trc.fields[fieldName] || {};
+        const tags = field.tags || [];
+        const severity = assessSeverity(tags);
+        const formName = extractFormName(trc.document_id);
+        const fieldDisplay = fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const systemValue = field.generated_content || '';
+        const comments = field.comments || '';
+        const issueTags = tags.join('; ');
+
+        const modal = document.createElement('div');
+        modal.className = 'ado-modal';
+        modal.innerHTML = `
+            <div class="ado-modal-content">
+                <div class="ado-header">
+                    <h3>Create ADO Bug</h3>
+                    <span class="ado-close" onclick="this.closest('.ado-modal').remove()">&times;</span>
+                </div>
+                <form id="adoBugForm">
+                    <div class="ado-field">
+                        <label>Title:</label>
+                        <input type="text" id="bugTitle" value="${trc.id}-${fieldDisplay}-${formName}" required>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Form Name:</label>
+                            <select id="bugTaxForm">
+                                ${AL_FORM_NAMES.map(f => `<option value="${f}" ${f === formName ? 'selected' : ''}>${f}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Tax Entity:</label>
+                            <input type="text" id="bugTaxEntity" value="AL">
+                        </div>
+                    </div>
+                    <div class="ado-field">
+                        <label>Description (preview ΓÇö sent as formatted HTML to ADO):</label>
+                        <div class="desc-preview" id="bugDescPreview">
+                            <div class="desc-section">
+                                <div class="desc-grid">
+                                    <div class="desc-grid-item"><span class="gk">TRC ID:</span> <span class="gv">${trc.id}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Field:</span> <span class="gv">${fieldDisplay}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Document:</span> <span class="gv">${trc.document_id || 'N/A'}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Form:</span> <span class="gv">${formName}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">TRC Name:</span> <span class="gv">${trc.name}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Status:</span> <span class="gv">${field.status || 'N/A'}</span></div>
+                                </div>
+                            </div>
+                            <div class="desc-section">
+                                <div class="desc-label">System Generated Value</div>
+                                <div class="desc-highlight">${esc(systemValue) || '<em>No system value</em>'}</div>
+                            </div>
+                            <div class="desc-section">
+                                <div class="desc-label">Reviewer Comment</div>
+                                <div class="desc-comment">${esc(comments) || '<em>No comment</em>'}</div>
+                            </div>
+                            <div class="desc-section">
+                                <div class="desc-label">Tags</div>
+                                <div>${tags.map(t => '<span class="tag-pill" style="background:#f0f0f0;padding:.1rem .4rem;border-radius:8px;font-size:.72rem">' + t + '</span>').join(' ') || '<em>None</em>'}</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="bugDescription" value="">
+                    </div>
+                    <div class="ado-field">
+                        <label>Repro Steps:</label>
+                        <textarea id="bugReproSteps" rows="4" required><div>1. Review ${fieldDisplay} field for ${formName}</div>
+<div>2. Compare system generated value with expected result</div>
+<div>3. Observe discrepancy: ${esc(comments.substring(0, 120))}${comments.length > 120 ? '...' : ''}</div></textarea>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Severity:</label>
+                            <select id="bugSeverity">
+                                <option value="1 - Critical" ${severity === '1 - Critical' ? 'selected' : ''}>1 - Critical</option>
+                                <option value="2 - High" ${severity === '2 - High' ? 'selected' : ''}>2 - High</option>
+                                <option value="3 - Medium" ${severity === '3 - Medium' ? 'selected' : ''}>3 - Medium</option>
+                                <option value="4 - Low" ${severity === '4 - Low' ? 'selected' : ''}>4 - Low</option>
+                            </select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Impact:</label>
+                            <select id="bugImpact">
+                                <option value="01 - Very High">01 - Very High</option>
+                                <option value="02 - High" ${['tax_rule_change','context'].includes(fieldName) ? 'selected' : ''}>02 - High</option>
+                                <option value="03 - Medium" ${!['tax_rule_change','context'].includes(fieldName) ? 'selected' : ''}>03 - Medium</option>
+                                <option value="04 - Low">04 - Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Application:</label>
+                            <select id="bugApplication"><option value="TRC" selected>TRC</option></select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Priority:</label>
+                            <select id="bugPriority">
+                                <option value="0" selected>0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Defect in Prod:</label>
+                            <select id="bugDefectInProd"><option value="No" selected>No</option><option value="Yes">Yes</option></select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Environment Found In:</label>
+                            <select id="bugEnvironment">
+                                <option value="Cert">Cert</option>
+                                <option value="Development">Development</option>
+                                <option value="Production">Production</option>
+                                <option value="QA" selected>QA</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ado-field">
+                        <label>How Was It Found:</label>
+                        <select id="bugHowFound"><option value="Manual" selected>Manual</option></select>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Area Path:</label>
+                            <input type="text" id="bugAreaPath" value="${ADO_CONFIG.areaPath || 'TRC Automation'}">
+                        </div>
+                        <div class="ado-field">
+                            <label>Iteration Path:</label>
+                            <input type="text" id="bugIterationPath" value="${ADO_CONFIG.iterationPath || 'TRC Automation'}">
+                        </div>
+                    </div>
+                    <div class="ado-field">
+                        <label>Tags:</label>
+                        <input type="text" id="bugTags" value="${issueTags}; SystemGeneratedScaling; ${formName}">
+                    </div>
+                    ${!ADO_CONFIG.pat ? `<div style="margin:.5rem 1.25rem;padding:.6rem .75rem;background:#fff3cd;border-radius:6px;font-size:.8rem;color:#856404">
+                        ΓÜá∩╕Å ADO credentials not configured. Fill in PAT &amp; Base URL then click Save Config below.
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem">
+                            <input id="cfgPat" placeholder="Personal Access Token" style="padding:.35rem .5rem;border:1px solid #ccc;border-radius:5px;font-size:.8rem">
+                            <input id="cfgBaseUrl" placeholder="https://dev.azure.com/org/Project/_apis/wit/workitems" style="padding:.35rem .5rem;border:1px solid #ccc;border-radius:5px;font-size:.8rem">
+                        </div>
+                        <button type="button" onclick="saveAdoCredentials()" style="margin-top:.4rem;padding:.3rem .8rem;background:#856404;color:#fff;border:none;border-radius:5px;font-size:.78rem;cursor:pointer">Save Config</button>
+                    </div>` : ''}
+                    <div class="ado-actions">
+                        <button type="button" class="ado-btn-cancel" onclick="this.closest('.ado-modal').remove()">Cancel</button>
+                        <button type="submit" class="ado-btn-create">Create ADO</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        document.getElementById('adoBugForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formVal   = document.getElementById('bugTaxForm').value;
+            const entityVal = document.getElementById('bugTaxEntity').value;
+            const descHtml = `<div><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-family:Segoe UI,sans-serif;font-size:13px;">`
+                + `<tr><td><b>TRC ID</b></td><td>${trc.id}</td><td><b>Field</b></td><td>${fieldDisplay}</td></tr>`
+                + `<tr><td><b>Form</b></td><td>${formVal}</td><td><b>Entity</b></td><td>${entityVal}</td></tr>`
+                + `<tr><td><b>Document</b></td><td colspan="3">${trc.document_id || 'N/A'}</td></tr>`
+                + `<tr><td><b>TRC Name</b></td><td colspan="3">${trc.name}</td></tr>`
+                + `<tr><td><b>Status</b></td><td colspan="3">${field.status || 'N/A'}</td></tr>`
+                + `</table></div>`
+                + `<div style="margin-top:8px"><b>System Generated Value:</b><br><span style="background:#fff3cd;padding:2px 6px">${systemValue}</span></div>`
+                + `<div style="margin-top:8px"><b>Reviewer Comment:</b><br><span style="background:#f8d7da;padding:2px 6px;font-style:italic">${comments}</span></div>`
+                + `<div style="margin-top:8px"><b>Tags:</b><br>${issueTags || 'None'}</div>`;
+            document.getElementById('bugDescription').value = descHtml;
+            await submitBug();
+        };
+    }
+
+    // Save ADO credentials to localStorage (shared with qa_triage_dashboard.html)
+    function saveAdoCredentials() {
+        const pat = (document.getElementById('cfgPat')?.value || '').trim();
+        const baseUrl = (document.getElementById('cfgBaseUrl')?.value || '').trim();
+        if (!pat || !baseUrl) { alert('Both PAT and Base URL are required.'); return; }
+        ADO_CONFIG.pat = pat;
+        ADO_CONFIG.baseUrl = baseUrl;
+        // Derive org/project from baseUrl for completeness
+        try {
+            const url = new URL(baseUrl);
+            const parts = url.pathname.split('/').filter(Boolean);
+            if (parts.length >= 2) { ADO_CONFIG.organization = parts[0]; ADO_CONFIG.project = parts[1]; }
+        } catch(e) {}
+        localStorage.setItem('hrb_ado_config', JSON.stringify(ADO_CONFIG));
+        // Re-render modal to remove the warning banner
+        const modal = document.querySelector('.ado-modal');
+        if (modal) modal.remove();
+        alert('Config saved. Please click Create ADO again.');
+    }
+
+    // Call ADO REST API
+    async function createADOBug(bugData) {
+        const workItemData = [
+            { op: 'add', path: '/fields/System.Title',                    value: bugData.title },
+            { op: 'add', path: '/fields/System.Description',              value: bugData.description },
+            { op: 'add', path: '/fields/Microsoft.VSTS.TCM.ReproSteps',   value: bugData.reproSteps },
+            { op: 'add', path: '/fields/Microsoft.VSTS.Common.Severity',  value: bugData.severity },
+            { op: 'add', path: '/fields/Microsoft.VSTS.Common.Priority',  value: parseInt(bugData.priority) },
+            { op: 'add', path: '/fields/EDMAgile.Application',            value: bugData.application },
+            { op: 'add', path: '/fields/EDMAgile.Impact',                 value: bugData.impact },
+            { op: 'add', path: '/fields/Custom.DEF_DefectInProd',         value: bugData.defectInProd },
+            { op: 'add', path: '/fields/Custom.DEF_EnvironmentFoundIn',   value: bugData.environmentFoundIn },
+            { op: 'add', path: '/fields/Custom.Def_HowFound',             value: bugData.howFound },
+            { op: 'add', path: '/fields/Custom.TaxForm',                  value: bugData.taxForm },
+            { op: 'add', path: '/fields/Custom.3f895184-c6ac-4e9a-b8b7-3730153b420c', value: bugData.taxEntity },
+            { op: 'add', path: '/fields/Custom.HRBReason',                value: 'New' },
+            { op: 'add', path: '/fields/Custom.HRBCalculatedPriority',    value: parseInt(bugData.priority) },
+            { op: 'add', path: '/fields/Custom.BugOverriddenPriority',    value: 0 },
+            { op: 'add', path: '/fields/Custom.BugOverriddenPriorityReason', value: 'NA' },
+            { op: 'add', path: '/fields/Custom.HRBGHCPUsedforCodeGeneration',  value: 'No' },
+            { op: 'add', path: '/fields/Custom.HRBGHCPUsedforCodeValidation',  value: 'No' },
+            { op: 'add', path: '/fields/Custom.HRBGHCPUsedforTestCases',       value: 'No' },
+            { op: 'add', path: '/fields/Custom.HRBGHCPUsedforDocumentation',   value: 'No' },
+            { op: 'add', path: '/fields/Custom.HRBGHCPUsedforOtherPleaseExplain', value: 'No' },
+            { op: 'add', path: '/fields/System.Tags',          value: bugData.tags },
+            { op: 'add', path: '/fields/System.AreaPath',        value: bugData.areaPath },
+            { op: 'add', path: '/fields/System.IterationPath',   value: bugData.iterationPath }
+        ];
+        return fetch(`${ADO_CONFIG.baseUrl}/$Bug?api-version=7.1`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json-patch+json',
+                'Authorization': `Basic ${btoa(':' + ADO_CONFIG.pat)}`
+            },
+            body: JSON.stringify(workItemData)
+        });
+    }
+
+    async function submitBug() {
+        const areaPath = document.getElementById('bugAreaPath').value.trim() || 'TRC Automation';
+        const iterationPath = document.getElementById('bugIterationPath').value.trim() || 'TRC Automation';
+        // Persist any updated area/iteration path to shared config
+        ADO_CONFIG.areaPath = areaPath;
+        ADO_CONFIG.iterationPath = iterationPath;
+        localStorage.setItem('hrb_ado_config', JSON.stringify(ADO_CONFIG));
+
+        const bugData = {
+            title:          document.getElementById('bugTitle').value,
+            description:    document.getElementById('bugDescription').value,
+            reproSteps:     document.getElementById('bugReproSteps').value,
+            severity:       document.getElementById('bugSeverity').value,
+            priority:       document.getElementById('bugPriority').value,
+            application:    document.getElementById('bugApplication').value,
+            impact:         document.getElementById('bugImpact').value,
+            defectInProd:   document.getElementById('bugDefectInProd').value,
+            environmentFoundIn: document.getElementById('bugEnvironment').value,
+            howFound:       document.getElementById('bugHowFound').value,
+            taxForm:        document.getElementById('bugTaxForm').value,
+            taxEntity:      document.getElementById('bugTaxEntity').value,
+            tags:           document.getElementById('bugTags').value,
+            areaPath,
+            iterationPath
+        };
+
+        const createBtn = document.querySelector('.ado-btn-create');
+        createBtn.textContent = '≡ƒöä Creating Bug...';
+        createBtn.disabled = true;
+
+        try {
+            const response = await createADOBug(bugData);
+            if (response.ok) {
+                const workItem = await response.json();
+                showSuccessModal(workItem);
+            } else {
+                const errText = await response.text();
+                alert(`Error creating bug:\nStatus: ${response.status} ${response.statusText}\n${errText}`);
+                createBtn.textContent = 'Create ADO';
+                createBtn.disabled = false;
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message + '\n\nCheck that ADO_CONFIG is set with valid credentials.');
+            createBtn.textContent = 'Create ADO';
+            createBtn.disabled = false;
+        }
+    }
+
+    function showSuccessModal(workItem) {
+        document.querySelector('.ado-modal').remove();
+        const modal = document.createElement('div');
+        modal.className = 'ado-modal';
+        modal.innerHTML = `
+            <div class="ado-modal-content ado-success">
+                <div class="ado-header"><h3>Γ£à ADO Bug Created!</h3></div>
+                <div class="ado-success-content">
+                    <p><strong>Work Item ID:</strong> <code>${workItem.id}</code></p>
+                    <p><strong>Title:</strong> ${workItem.fields['System.Title']}</p>
+                    <p><strong>Severity:</strong> ${workItem.fields['Microsoft.VSTS.Common.Severity']}</p>
+                    <p><strong>State:</strong> ${workItem.fields['System.State']}</p>
+                    <p><strong>View in ADO:</strong> <a href="${workItem._links.html.href}" target="_blank">Open Work Item #${workItem.id}</a></p>
+                </div>
+                <div class="ado-actions">
+                    <button onclick="window.open('${workItem._links.html.href}', '_blank')" class="ado-btn-cancel">≡ƒöù View in ADO</button>
+                    <button onclick="this.closest('.ado-modal').remove()" class="ado-btn-create">Back</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // ΓöÇΓöÇ Filtering ΓöÇΓöÇ
+    function applyFilters() {
+        const fieldFilter = document.getElementById('filterField').value;
+        const statusFilter = document.getElementById('filterStatus').value;
+        const tagFilter = document.getElementById('filterTag').value;
+        const commentsOnly = document.getElementById('filterCommentsOnly').value;
+        const search = document.getElementById('searchBox').value.toLowerCase().trim();
+
+        // Update tag summary active state
+        document.querySelectorAll('.tag-summary-pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.tag === tagFilter);
+        });
+
+        const filtered = DATA.trcs.filter(trc => {
+            const fields = ['context', 'system_inference', 'tax_rule_change', 'category'];
+
+            // Comments-only filter
+            if (commentsOnly === 'yes') {
+                const hasAny = fields.some(f => trc.fields[f].comments);
+                if (!hasAny) return false;
+            } else if (commentsOnly === 'no') {
+                const hasAny = fields.some(f => trc.fields[f].comments);
+                if (hasAny) return false;
+            }
+
+            // Field filter: at least one matching field must have a comment
+            if (fieldFilter) {
+                const f = trc.fields[fieldFilter];
+                if (!f || !f.comments) return false;
+            }
+
+            // Status filter
+            if (statusFilter) {
+                if (fieldFilter) {
+                    if (trc.fields[fieldFilter].status !== statusFilter) return false;
+                } else {
+                    const match = fields.some(f => trc.fields[f].status === statusFilter && trc.fields[f].comments);
+                    if (!match) return false;
+                }
+            }
+
+            // Tag filter
+            if (tagFilter) {
+                const matchTag = fields.some(f => {
+                    const tags = trc.fields[f].tags || [];
+                    return tags.includes(tagFilter);
+                });
+                if (!matchTag) return false;
+            }
+
+            // Search
+            if (search) {
+                const hay = [
+                    trc.name, trc.document_id, trc.created_by,
+                    ...fields.map(f => trc.fields[f].comments || ''),
+                    ...fields.flatMap(f => trc.fields[f].tags || [])
+                ].join(' ').toLowerCase();
+                if (!hay.includes(search)) return false;
+            }
+
+            return true;
+        });
+
+        renderTRCs(filtered);
+
+        // Preserve expanded state
+        if (allExpanded) {
+            document.querySelectorAll('.trc-card').forEach(c => c.classList.add('open'));
+        }
+    }
+
+    // ΓöÇΓöÇ Toggle All ΓöÇΓöÇ
+    document.getElementById('toggleAll').addEventListener('click', function() {
+        allExpanded = !allExpanded;
+        this.textContent = allExpanded ? 'Collapse All' : 'Expand All';
+        document.querySelectorAll('.trc-card').forEach(c => {
+            c.classList.toggle('open', allExpanded);
+        });
+    });
+
+    // ΓöÇΓöÇ Filter events ΓöÇΓöÇ
+    ['filterField', 'filterStatus', 'filterTag', 'filterCommentsOnly'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyFilters);
+    });
+    document.getElementById('searchBox').addEventListener('input', applyFilters);
+
+    // ΓöÇΓöÇ Init ΓöÇΓöÇ
+    fetch('prod_feedback_classified.json')
+        .then(r => r.json())
+        .then(data => {
+            DATA = data;
+            renderSummary(data);
+            renderTagSummary(data);
+            applyFilters();
+        })
+        .catch(err => {
+            document.getElementById('trcList').innerHTML =
+                `<div style="padding:2rem;color:var(--danger)">Error loading data: ${err.message}<br>
+                 Make sure <code>prod_feedback_classified.json</code> is in the same directory and served via HTTP.</div>`;
+        });
+    </script>
+</body>
+</html>
