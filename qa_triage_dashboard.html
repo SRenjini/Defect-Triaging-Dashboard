@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Triage Dashboard — TCA</title>
+    <style>
+        :root {
+            --primary: #00457C;
+            --primary-light: #003057;
+            --green: #76B900;
+            --accent: #0088CE;
+            --danger: #D32F2F;
+            --warning: #F9A825;
+            --success: #388E3C;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #333;
+            --text-muted: #666;
+            --border: #e0e0e0;
+            --radius: 10px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color:#fff; padding:1.1rem 2rem;
+            display:flex; justify-content:space-between; align-items:center;
+            box-shadow:0 4px 12px rgba(0,0,0,.15);
+        }
+        .header h1 { font-size:1.5rem; font-weight:600; }
+        .header p  { opacity:.85; font-size:.82rem; margin-top:.1rem; }
+        .header-right { text-align:right; font-size:.78rem; opacity:.8; }
+
+        /* ── Filter Strip ── */
+        .filter-strip {
+            display:flex; flex-wrap:wrap; gap:.65rem; align-items:center;
+            padding:.85rem 2rem; background:#fff; border-bottom:1px solid var(--border);
+            box-shadow:0 1px 4px rgba(0,0,0,.04);
+        }
+        .filter-strip label { font-size:.75rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em; }
+        .filter-strip select, .filter-strip input[type="date"] {
+            padding:.4rem .6rem; border:1px solid var(--border); border-radius:6px;
+            font-size:.82rem; background:#fff; color:var(--text); min-width:130px;
+        }
+        .filter-strip select:focus, .filter-strip input:focus { outline:none; border-color:var(--accent); }
+        .filter-sep { width:1px; height:28px; background:var(--border); margin:0 .15rem; }
+        .filter-strip .reset-btn {
+            margin-left:auto; padding:.35rem .85rem; border:1px solid var(--border);
+            border-radius:6px; background:#fff; cursor:pointer; font-size:.78rem;
+            color:var(--primary); font-weight:600; transition:all .15s;
+        }
+        .filter-strip .reset-btn:hover { background:var(--primary); color:#fff; }
+        
+        #refreshBtn {
+            background: var(--primary); color: white; border: none; padding: .5rem 1rem;
+            border-radius: 6px; cursor: pointer; font-size: .8rem; margin-left: .5rem;
+            transition: all .2s;
+        }
+        #refreshBtn:hover { background: var(--primary-dark); }
+
+        .ado-badge, .trc-badge {
+            display: inline-block; background: var(--primary); color: white;
+            padding: .15rem .4rem; border-radius: 8px; font-size: .65rem;
+            font-weight: 600; margin-left: .5rem;
+        }
+        .ado-badge { background: var(--danger); }
+        .trc-badge { background: var(--success); }
+
+        /* ── KPI Row ── */
+        .kpi-row {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(195px,1fr));
+            gap:1rem; padding:1.25rem 2rem 0;
+        }
+        .kpi {
+            background:var(--card-bg); border-radius:var(--radius);
+            padding:1.1rem 1rem; text-align:center;
+            box-shadow:0 2px 8px rgba(0,0,0,.06);
+            border-top:3px solid var(--border); position:relative;
+        }
+        .kpi .val { font-size:2.1rem; font-weight:700; color:var(--primary); }
+        .kpi .lbl { color:var(--text-muted); font-size:.78rem; margin-top:.25rem; }
+        .kpi .sub { color:var(--text-muted); font-size:.7rem; margin-top:.2rem; line-height:1.4; }
+        .kpi.green  { border-top-color:var(--green); }
+        .kpi.green .val { color:var(--green); }
+        .kpi.success { border-top-color:var(--success); }
+        .kpi.success .val { color:var(--success); }
+        .kpi.danger  { border-top-color:var(--danger); }
+        .kpi.danger .val { color:var(--danger); }
+        .kpi.accent  { border-top-color:var(--accent); }
+        .kpi.accent .val { color:var(--accent); }
+        .kpi.warning { border-top-color:var(--warning); }
+        .kpi.warning .val { color:var(--warning); }
+        .kpi .target-line {
+            display:inline-block; font-size:.66rem; font-weight:600;
+            padding:.15rem .5rem; border-radius:10px; margin-top:.3rem;
+        }
+        .kpi .target-line.pass { background:#E8F5E9; color:#2E7D32; }
+        .kpi .target-line.fail { background:#FFEBEE; color:#C62828; }
+
+        /* ── Tag Analysis Section ── */
+        .tag-analysis {
+            padding:1rem 2rem; background:#fff; border-bottom:1px solid var(--border);
+        }
+        .tag-analysis .ta-title {
+            font-size:.9rem; font-weight:700; color:var(--primary); margin-bottom:.65rem;
+        }
+        .tag-summary-grid {
+            display:flex; flex-wrap:wrap; gap:.5rem;
+        }
+        .tag-summary-item {
+            display:flex; align-items:center; gap:.35rem;
+            padding:.3rem .6rem; border-radius:12px; font-size:.72rem; font-weight:600;
+            cursor:pointer; transition:all .15s; border:1px solid transparent;
+        }
+        .tag-summary-item:hover { opacity:.85; }
+        .tag-summary-item .tcount {
+            background:rgba(255,255,255,.8); border-radius:8px;
+            padding:.05rem .35rem; font-size:.65rem;
+        }
+        .tag-summary-item.top-issue {
+            border:2px solid var(--danger); box-shadow:0 0 8px rgba(211,47,47,.2);
+            animation:pulse-highlight 2s infinite;
+        }
+        @keyframes pulse-highlight {
+            0%, 100% { box-shadow:0 0 8px rgba(211,47,47,.2); }
+            50% { box-shadow:0 0 15px rgba(211,47,47,.4); }
+        }
+        /* Tag severity colors */
+        .tag-summary-item.high {   background:#FFEBEE; color:#C62828; }
+        .tag-summary-item.medium { background:#FFF8E1; color:#F57C00; }
+        .tag-summary-item.low {    background:#E8F5E9; color:#2E7D32; }
+
+        .ado-badge, .trc-badge {
+            display: inline-block; background: var(--primary); color: white;
+            padding: .15rem .4rem; border-radius: 8px; font-size: .65rem;
+            font-weight: 600; margin-left: .5rem;
+        }
+        .ado-badge { background: var(--danger); }
+        .trc-badge { background: var(--success); }
+
+        /* ── Tax Expert Tags in Comments ── */
+        .field-tags {
+            display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.35rem; padding:.35rem .75rem;
+            background:#f8fafc; border-top:1px solid var(--border);
+        }
+        .tax-tag {
+            padding:.12rem .4rem; border-radius:8px; font-size:.65rem; font-weight:600;
+            cursor:pointer; transition:all .15s;
+        }
+        .tax-tag:hover { transform:scale(1.05); }
+        .tax-tag.high {   background:#FFEBEE; color:#C62828; }
+        .tax-tag.medium { background:#FFF8E1; color:#F57C00; }
+        .tax-tag.low {    background:#E8F5E9; color:#2E7D32; }
+        .tax-tag.top-issue {
+            border:2px solid var(--danger); background:#FFE0E0;
+            text-shadow:0 0 2px rgba(211,47,47,.3);
+        }
+        .field-bars {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:1rem; padding:1rem 2rem;
+        }
+        .field-bar-card {
+            background:var(--card-bg); border-radius:var(--radius);
+            padding:1rem; box-shadow:0 2px 8px rgba(0,0,0,.06);
+        }
+        .field-bar-card .fb-title {
+            font-size:.82rem; font-weight:700; color:var(--primary); margin-bottom:.5rem;
+            text-transform:capitalize;
+        }
+        .bar-track {
+            height:20px; background:#f0f0f0; border-radius:10px; overflow:hidden;
+            display:flex; margin-bottom:.3rem;
+        }
+        .bar-fill-ok   { background:var(--success); height:100%; transition:width .4s; }
+        .bar-fill-bad  { background:var(--danger);   height:100%; transition:width .4s; }
+        .fb-legend { display:flex; gap:1rem; font-size:.7rem; color:var(--text-muted); }
+        .fb-legend .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:3px; vertical-align:middle; }
+        .fb-legend .dot.ok  { background:var(--success); }
+        .fb-legend .dot.bad { background:var(--danger); }
+
+        /* ── Section ── */
+        .section-title {
+            font-size:1rem; font-weight:700; color:var(--primary);
+            padding:1.25rem 2rem .5rem; display:flex; align-items:center; gap:.5rem;
+        }
+        .section-title .badge {
+            background:var(--primary); color:#fff; font-size:.7rem;
+            padding:.15rem .5rem; border-radius:10px; font-weight:600;
+        }
+        .pill {
+            display:inline-block; padding:.15rem .5rem; border-radius:10px;
+            font-size:.68rem; font-weight:600;
+        }
+        .pill.pass { background:#E8F5E9; color:#2E7D32; }
+        .pill.fail { background:#FFEBEE; color:#C62828; }
+        .pill.warn { background:#FFF3E0; color:#E65100; }
+        .pill.info { background:#E3F2FD; color:#0D47A1; }
+
+        /* ── Document Cards ── */
+        .doc-list { padding:0 2rem 2rem; }
+        .doc-card {
+            background:var(--card-bg); border-radius:var(--radius);
+            margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,.06);
+            overflow:hidden; transition:box-shadow .2s;
+        }
+        .doc-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); }
+        .doc-card.below-target { border-left:4px solid var(--danger); }
+        .doc-card.meets-target  { border-left:4px solid var(--success); }
+
+        .doc-header {
+            display:flex; align-items:center; gap:.75rem;
+            padding:1rem 1.25rem; cursor:pointer; user-select:none;
+            transition:background .15s;
+        }
+        .doc-header:hover { background:#f8f9fb; }
+        .doc-header .chevron {
+            font-size:.85rem; color:var(--text-muted);
+            transition:transform .25s; flex-shrink:0; width:1rem; text-align:center;
+        }
+        .doc-card.open .doc-header .chevron { transform:rotate(90deg); }
+        .doc-header .doc-title { font-weight:600; font-size:.9rem; flex:1; line-height:1.35; color:var(--primary); }
+        .doc-header .doc-title small { font-weight:400; color:var(--text-muted); font-size:.75rem; display:block; margin-top:.1rem; }
+        .doc-header .doc-meta {
+            display:flex; gap:.45rem; flex-shrink:0; align-items:center; flex-wrap:wrap; justify-content:flex-end;
+        }
+
+        .doc-body {
+            display:none; padding:0 1.25rem 1.25rem; border-top:1px solid var(--border);
+        }
+        .doc-card.open .doc-body { display:block; }
+        .doc-info {
+            display:flex; gap:1.5rem; flex-wrap:wrap;
+            font-size:.78rem; color:var(--text-muted); padding:.65rem 0;
+        }
+        .doc-info span { display:flex; align-items:center; gap:.3rem; }
+
+        /* Metrics strip inside doc card */
+        .doc-metrics {
+            display:flex; gap:1.5rem; flex-wrap:wrap; padding:.5rem 0 .65rem;
+            border-bottom:1px solid var(--border); margin-bottom:.65rem;
+        }
+        .dm { text-align:center; }
+        .dm .dm-val { font-size:1.15rem; font-weight:700; }
+        .dm .dm-lbl { font-size:.68rem; color:var(--text-muted); }
+
+        /* TRC cards inside doc */
+        .trc-card-inner {
+            border:1px solid var(--border); border-radius:8px; padding:.75rem 1rem;
+            margin-bottom:.65rem; font-size:.82rem; background:#fff;
+        }
+        .trc-card-inner.has-comment { border-left:3px solid var(--warning); }
+        .trc-card-inner .trc-title-row {
+            font-weight:600; color:var(--primary); margin-bottom:.4rem;
+            display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;
+        }
+        .trc-card-inner .trc-title-row .trc-name { flex:1; }
+
+        /* Field row inside TRC */
+        .field-row {
+            border:1px solid var(--border); border-radius:8px;
+            overflow:hidden; margin-top:.5rem;
+        }
+        .field-row.has-comment { border-left:3px solid var(--warning); }
+        .field-row-header {
+            display:flex; align-items:center; gap:.75rem;
+            padding:.5rem .75rem; background:#fafbfc;
+        }
+        .field-row-header .fname { font-weight:600; font-size:.8rem; color:var(--primary); min-width:140px; }
+
+        /* Side-by-side panes */
+        .field-sbs {
+            display:grid; grid-template-columns:1fr 1fr;
+            border-top:1px solid var(--border);
+        }
+        .field-pane {
+            padding:.6rem .75rem; font-size:.8rem; line-height:1.5;
+            white-space:pre-wrap; overflow-y:auto; max-height:200px;
+        }
+        .field-pane.gen { background:#f0f4f8; color:#555; border-right:1px solid var(--border); }
+        .field-pane.gen .pane-lbl { color:var(--accent); }
+        .field-pane.cmt { background:#FFFDE7; }
+        .field-pane.cmt .pane-lbl { color:#E65100; }
+        .field-pane .pane-lbl { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-bottom:.25rem; color:var(--text-muted); }
+        .field-no-comment { padding:.4rem .75rem; font-size:.78rem; color:#bbb; font-style:italic; }
+
+        .no-docs-msg { padding:2rem; text-align:center; color:var(--text-muted); font-size:.9rem; }
+
+        @media (max-width:900px) {
+            .filter-strip { padding:.6rem 1rem; }
+            .kpi-row { grid-template-columns:repeat(2,1fr); padding:.75rem 1rem 0; }
+            .field-bars { padding:.5rem 1rem; grid-template-columns:1fr; }
+            .doc-list { padding:0 1rem 1rem; }
+            .section-title { padding:.75rem 1rem .3rem; }
+            .field-sbs { grid-template-columns:1fr; }
+            .doc-header .doc-meta { display:none; }
+        }
+
+        /* ── ADO Modal Styles ── */
+        .ado-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+
+        .ado-modal-content {
+            background: white; border-radius: 8px; width: 90%; max-width: 600px;
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .ado-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 1.5rem; border-bottom: 1px solid #eee; background: #f8f9fa;
+        }
+
+        .ado-header h3 { margin: 0; color: #2c3e50; }
+        .ado-close { font-size: 1.5rem; cursor: pointer; color: #999; }
+        .ado-close:hover { color: #333; }
+
+        .ado-field { margin: 1rem 1.5rem; }
+        .ado-field label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
+        .ado-field input, .ado-field textarea, .ado-field select {
+            width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 0.9rem; box-sizing: border-box;
+        }
+
+        .ado-row { display: flex; gap: 1rem; margin: 1rem 1.5rem; }
+        .ado-row .ado-field { flex: 1; margin: 0; }
+
+        .ado-actions {
+            padding: 1rem 1.5rem; border-top: 1px solid #eee; 
+            display: flex; gap: 0.5rem; justify-content: flex-end;
+        }
+
+        .ado-btn-create, .ado-btn-cancel {
+            padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer;
+            font-size: 0.9rem; font-weight: 600;
+        }
+
+        .ado-btn-create { background: var(--danger); color: white; }
+        .ado-btn-cancel { background: #6c757d; color: white; }
+        .ado-btn-create:hover { background: var(--primary-dark); }
+        .ado-btn-cancel:hover { background: #545b62; }
+        .ado-btn-create:disabled { background: #ccc; cursor: not-allowed; }
+
+        .ado-success { border-left: 4px solid var(--success); }
+        .ado-success-content { padding: 1rem 1.5rem; }
+        .ado-success-content p { margin: 0.5rem 0; }
+        .ado-success-content a { color: var(--primary); text-decoration: none; }
+        .ado-success-content a:hover { text-decoration: underline; }
+
+        .create-bug-btn {
+            background: var(--danger); color: white; border: none; padding: 0.3rem 0.6rem;
+            border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-left: 0.5rem;
+            transition: all 0.2s;
+        }
+        .create-bug-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+
+        .desc-preview {
+            background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;
+            padding: 1rem; font-size: 0.88rem; line-height: 1.6; color: #333;
+            max-height: 300px; overflow-y: auto;
+        }
+        .desc-preview .desc-section { margin-bottom: 0.8rem; }
+        .desc-preview .desc-section:last-child { margin-bottom: 0; }
+        .desc-preview .desc-label {
+            font-weight: 700; color: var(--primary); font-size: 0.82rem;
+            text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.25rem;
+            border-bottom: 1px solid #e0e0e0; padding-bottom: 0.15rem;
+        }
+        .desc-preview .desc-value { color: #222; padding-left: 0.2rem; }
+        .desc-preview .desc-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 1rem;
+        }
+        .desc-preview .desc-grid-item {
+            display: flex; gap: 0.3rem;
+        }
+        .desc-preview .desc-grid-item .gk {
+            font-weight: 600; color: #555; white-space: nowrap;
+        }
+        .desc-preview .desc-grid-item .gv { color: #222; }
+        .desc-preview .desc-highlight {
+            background: #fff3cd; border-left: 3px solid #ffc107; padding: 0.4rem 0.6rem;
+            border-radius: 3px; margin-top: 0.2rem;
+        }
+        .desc-preview .desc-comment {
+            background: #f8d7da; border-left: 3px solid var(--danger); padding: 0.4rem 0.6rem;
+            border-radius: 3px; margin-top: 0.2rem; font-style: italic;
+        }
+        .desc-preview .tag-pill {
+            display: inline-block; background: var(--primary); color: white;
+            padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin: 0.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>QA Triage Dashboard</h1>
+            <p>Quality Assessment for Scaling — TCA System</p>
+        </div>
+        <div class="header-right">
+            <div>Source: QA Cosmos DB</div>
+            <div id="genDate"></div>
+        </div>
+    </div>
+
+    <!-- Filter Strip -->
+    <div class="filter-strip">
+        <label>Entity</label>
+        <select id="fEntity"><option value="">All Entities</option></select>
+        <div class="filter-sep"></div>
+        <label>Tax Year</label>
+        <select id="fTaxYear"><option value="">All Years</option></select>
+        <div class="filter-sep"></div>
+        <label>Reviewer</label>
+        <select id="fReviewer"><option value="">All Reviewers</option></select>
+        <div class="filter-sep"></div>
+        <label>Document</label>
+        <select id="fDocument"><option value="">All Documents</option></select>
+        <div class="filter-sep"></div>
+        <label>Date Range</label>
+        <input type="date" id="fDateFrom" title="From">
+        <span style="font-size:.75rem;color:var(--text-muted)">—</span>
+        <input type="date" id="fDateTo" title="To">
+        <button class="reset-btn" id="resetBtn">Reset Filters</button>
+        <button id="refreshBtn" onclick="refreshData()" title="Refresh from live DB">
+            🔄 Refresh Live Data
+        </button>
+    </div>
+
+    <!-- Tag Analysis Strip -->
+    <div class="tag-analysis" id="tagAnalysis"></div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- Per-field approval bars -->
+    <div class="field-bars" id="fieldBars"></div>
+
+    <!-- Document Cards -->
+    <div class="section-title">First Review Completed <span class="badge" id="docCount">0</span></div>
+    <div class="doc-list" id="docList"></div>
+
+    <script>
+    let DATA = null;
+    let allExpanded = false;
+    const TARGET = 80; // acceptance target %
+    const TAX_EXPERT_SEVERITY = {
+        'Form Identification Error': 'high',
+        'Line Reference Inaccuracy': 'high',
+        'Calculation Change Missing': 'high',
+        'Change Type Misclassification': 'high',
+        'Context Irrelevance': 'medium',
+        'Content Verbosity': 'low',
+        'Clarity & Precision': 'medium',
+        'Section Specificity': 'medium',
+        'Change Completeness': 'high',
+        'Unnecessary Content': 'low',
+        'General Issue': 'medium'
+    };
+
+    const FIELD_LABELS = {
+        context: 'Context',
+        system_inference: 'System Inference',
+        tax_rule_change: 'Tax Rule Change',
+        category: 'Category'
+    };
+    const FIELDS = ['context','system_inference','tax_rule_change','category'];
+
+    // ── Helpers ──
+    function esc(s) { if(!s) return ''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    function pct(n,d) { return d ? Math.round(n/d*1000)/10 : 0; }
+    function shortDoc(id) { return id && id.length > 45 ? id.substring(0,42)+'…' : id; }
+
+    // ── Filter docs ──
+    function getFilteredDocs() {
+        const entity = document.getElementById('fEntity').value;
+        const year   = document.getElementById('fTaxYear').value;
+        const reviewer = document.getElementById('fReviewer').value;
+        const docId  = document.getElementById('fDocument').value;
+        const from   = document.getElementById('fDateFrom').value;
+        const to     = document.getElementById('fDateTo').value;
+
+        return DATA.documents.filter(d => {
+            if (entity && d.tax_entity !== entity) return false;
+            if (year && String(d.tax_year) !== year) return false;
+            if (docId && d.document_id !== docId) return false;
+            
+            // Reviewer filter - check if any TRC in this document was reviewed by the selected reviewer
+            if (reviewer) {
+                const hasReviewer = d.trcs.some(t => 
+                    t.review_status === 'FirstReviewCompleted' && 
+                    t.reviewed_by && t.reviewed_by === reviewer
+                );
+                if (!hasReviewer) return false;
+            }
+            
+            // Date filters - check if document has TRCs created within date range
+            if (from || to) {
+                const hasTRCsInRange = d.trcs && d.trcs.some(trc => {
+                    const trcDate = trc.created_at;
+                    if (!trcDate) return false;
+                    
+                    const dateOnly = trcDate.substring(0, 10); // YYYY-MM-DD
+                    const trcDateObj = new Date(dateOnly);
+                    
+                    if (from) {
+                        const fromDateObj = new Date(from);
+                        if (trcDateObj < fromDateObj) return false;
+                    }
+                    if (to) {
+                        const toDateObj = new Date(to);
+                        if (trcDateObj > toDateObj) return false;
+                    }
+                    return true;
+                });
+                
+                if (!hasTRCsInRange) return false;
+            }
+            return true;
+        });
+    }
+
+    // ── Aggregate metrics across filtered docs ──
+    // Only counts actual TRCs (POTENTIAL_TRC, TRC_REQUIRED); excludes NOT_TRC
+    function aggregate(docs) {
+        let totalTrcs = 0, totalChanges = 0, firstReview = 0, descApproved = 0, descWithComments = 0;
+        const fs = {};
+        FIELDS.forEach(f => fs[f] = {approved:0, not_approved:0, with_comments:0, total_reviewed:0});
+
+        docs.forEach(d => {
+            // Client-side filtering: count only actual TRCs
+            const actualTrcs = d.trcs.filter(t => t.classification !== 'NOT_TRC' && t.classification !== '');
+            totalTrcs += actualTrcs.length;
+            totalChanges += d.trcs.length;
+            // Metrics from reviewed actual TRCs
+            const reviewedActual = actualTrcs.filter(t => t.review_status === 'FirstReviewCompleted');
+            firstReview += reviewedActual.length;
+            reviewedActual.forEach(t => {
+                const trcField = t.fields?.tax_rule_change || {};
+                if (trcField.status === 'Approved') descApproved++;
+                if (trcField.comments) descWithComments++;
+            });
+            FIELDS.forEach(f => {
+                reviewedActual.forEach(t => {
+                    const fd = t.fields?.[f] || {};
+                    if (fd.status === 'Approved') fs[f].approved++;
+                    if (fd.status === 'NotApproved') fs[f].not_approved++;
+                    if (fd.comments) fs[f].with_comments++;
+                    if (fd.status === 'Approved' || fd.status === 'NotApproved') fs[f].total_reviewed++;
+                });
+            });
+        });
+        const descNoComment = firstReview - descWithComments;
+        const descAcceptance = pct(descNoComment, firstReview);
+        const totalFields = firstReview * 4;
+        const approvedFields = FIELDS.reduce((s,f) => s + fs[f].approved, 0);
+        const allFieldApproval = pct(approvedFields, totalFields);
+
+        return { totalTrcs, totalChanges, firstReview, descApproved, descWithComments, descNoComment,
+                 descAcceptance, totalFields, approvedFields, allFieldApproval, fs, docs: docs.length };
+    }
+
+    // ── Render KPIs ──
+    function renderKPIs(m) {
+        const meetsTarget = m.descAcceptance >= TARGET;
+        document.getElementById('kpiRow').innerHTML = `
+            <div class="kpi">
+                <div class="val">${m.docs}</div>
+                <div class="lbl">Documents</div>
+            </div>
+            <div class="kpi accent">
+                <div class="val">${m.totalTrcs}</div>
+                <div class="lbl">Actual TRCs</div>
+                <div class="sub">${m.totalChanges} total changes detected</div>
+            </div>
+            <div class="kpi green">
+                <div class="val">${m.firstReview}</div>
+                <div class="lbl">First Review Completed</div>
+                <div class="sub">Forms ready for quality eval</div>
+            </div>
+            <div class="kpi ${meetsTarget ? 'success' : 'danger'}">
+                <div class="val">${m.descAcceptance}%</div>
+                <div class="lbl">TRC Desc Acceptance</div>
+                <div class="sub">${m.descNoComment} without comments / ${m.firstReview} TRCs<br>
+                    ${m.descWithComments} with comments</div>
+                <span class="target-line ${meetsTarget ? 'pass' : 'fail'}">
+                    ${meetsTarget ? '✓' : '✗'} Target: ${TARGET}%
+                </span>
+            </div>
+            <div class="kpi ${m.allFieldApproval >= 80 ? 'success' : 'warning'}">
+                <div class="val">${m.allFieldApproval}%</div>
+                <div class="lbl">All-field Approval</div>
+                <div class="sub">${m.approvedFields} approved / ${m.totalFields} fields</div>
+            </div>
+        `;
+    }
+
+    // ── Render Tag Analysis ──
+    function renderTagAnalysis() {
+        const ta = DATA.summary.tag_analysis;
+        if (!ta.all_tags || Object.keys(ta.all_tags).length === 0) {
+            document.getElementById('tagAnalysis').innerHTML = '';
+            return;
+        }
+        
+        const totalTrcs = DATA.summary.first_review_completed;
+        const topIssues = new Set(Object.keys(ta.top_issue_tags || {}));
+        
+        document.getElementById('tagAnalysis').innerHTML = `
+            <div class="ta-title">🏷️ Tax Expert Issue Tags 
+                ${topIssues.size ? `<span style="color:var(--danger)">• ${topIssues.size} Critical Issues (${ta.top_issue_threshold}+ TRCs)</span>` : ''}
+            </div>
+            <div class="tag-summary-grid">
+                ${Object.entries(ta.all_tags).map(([tag, count]) => {
+                    const severity = TAX_EXPERT_SEVERITY[tag] || 'medium';
+                    const isTopIssue = topIssues.has(tag);
+                    const pct = totalTrcs ? Math.round(count / totalTrcs * 100) : 0;
+                    return `<span class="tag-summary-item ${severity} ${isTopIssue ? 'top-issue' : ''}" 
+                                  title="${tag}: ${count}/${totalTrcs} TRCs (${pct}%)">
+                        ${tag} <span class="tcount">${count}</span>
+                    </span>`;
+                }).join('')}
+            </div>
+        `;
+    }
+    // ── Render per-field bars ──
+    function renderFieldBars(m) {
+        document.getElementById('fieldBars').innerHTML = FIELDS.map(f => {
+            const s = m.fs[f];
+            const total = s.total_reviewed || 1;
+            const okPct = Math.round(s.approved / total * 100);
+            const badPct = 100 - okPct;
+            return `<div class="field-bar-card">
+                <div class="fb-title">${FIELD_LABELS[f]}</div>
+                <div class="bar-track">
+                    <div class="bar-fill-ok" style="width:${okPct}%"></div>
+                    <div class="bar-fill-bad" style="width:${badPct}%"></div>
+                </div>
+                <div class="fb-legend">
+                    <span><span class="dot ok"></span> ${s.approved} Approved (${okPct}%)</span>
+                    <span><span class="dot bad"></span> ${s.not_approved} Rejected</span>
+                    <span>💬 ${s.with_comments} comments</span>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── Render document cards (First Review Completed actual TRCs only) ──
+    function renderDocCards(docs) {
+        // Filter each doc to only actual TRCs (exclude NOT_TRC)
+        const docsWithActualTrcs = docs.map(d => {
+            const actualTrcs = d.trcs.filter(t => t.classification !== 'NOT_TRC' && t.classification !== '');
+            const reviewedActual = actualTrcs.filter(t => t.review_status === 'FirstReviewCompleted');
+            return { ...d, _actualTrcs: actualTrcs, _reviewedActual: reviewedActual };
+        });
+        // Only include documents with at least 1 reviewed actual TRC
+        const reviewedDocs = docsWithActualTrcs.filter(d => d._reviewedActual.length > 0);
+        document.getElementById('docCount').textContent = reviewedDocs.length;
+        const list = document.getElementById('docList');
+
+        if (!reviewedDocs.length) {
+            list.innerHTML = '<div class="no-docs-msg">No documents with First Review Completed TRCs match the current filters</div>';
+            return;
+        }
+
+        list.innerHTML = reviewedDocs.map((d, i) => {
+            const reviewedTrcs = d._reviewedActual;
+            const fr = reviewedTrcs.length;
+            const descWithComments = reviewedTrcs.filter(t => t.fields?.tax_rule_change?.comments).length;
+            const descNoComment = fr - descWithComments;
+            const descAcc = pct(descNoComment, fr);
+            const totalF = fr * 4;
+            const approvedF = reviewedTrcs.reduce((s, t) => s + FIELDS.reduce((a, f) => a + (t.fields?.[f]?.status === 'Approved' ? 1 : 0), 0), 0);
+            const fieldAcc = pct(approvedF, totalF);
+            const meetsTarget = descAcc >= TARGET;
+            const commentCount = reviewedTrcs.filter(t => FIELDS.some(f => t.fields[f]?.comments)).length;
+
+            return `<div class="doc-card ${meetsTarget ? 'meets-target' : 'below-target'}" id="doc_${i}">
+                <div class="doc-header" onclick="document.getElementById('doc_${i}').classList.toggle('open')">
+                    <span class="chevron">&#9654;</span>
+                    <div class="doc-title">
+                        ${esc(d.document_title || d.document_id)}
+                        <small>${esc(d.tax_entity)} &bull; TY ${d.tax_year} &bull; ${esc(d.document_type)} &bull; ${esc(d.revision || '')}</small>
+                    </div>
+                    <div class="doc-meta">
+                        <span class="pill info">${fr} TRC${fr !== 1 ? 's' : ''}</span>
+                        <span class="pill ${meetsTarget ? 'pass' : 'fail'}">Desc ${descAcc}%</span>
+                        <span class="pill ${fieldAcc >= 80 ? 'pass' : 'warn'}">Fields ${fieldAcc}%</span>
+                        ${commentCount ? `<span class="pill warn">💬 ${commentCount}</span>` : ''}
+                    </div>
+                </div>
+                <div class="doc-body">
+                    <div class="doc-info">
+                        <span>&#128196; ${esc(d.document_id)}</span>
+                        <span>&#128100; ${esc((d.created_by || '').trim())}</span>
+                        <span>&#128197; ${(d.created_at || '').substring(0,10)}</span>
+                    </div>
+                    <div class="doc-metrics">
+                        <div class="dm"><div class="dm-val">${fr}</div><div class="dm-lbl">Reviewed TRCs</div></div>
+                        <div class="dm"><div class="dm-val" style="color:${meetsTarget ? 'var(--success)' : 'var(--danger)'}">${descAcc}%</div><div class="dm-lbl">Desc Acceptance (${descNoComment}/${fr})</div></div>
+                        <div class="dm"><div class="dm-val" style="color:${fieldAcc >= 80 ? 'var(--success)' : 'var(--warning)'}">${fieldAcc}%</div><div class="dm-lbl">All-field (${approvedF}/${totalF})</div></div>
+                        <div class="dm"><div class="dm-val" style="color:var(--warning)">${commentCount}</div><div class="dm-lbl">With Comments</div></div>
+                    </div>
+                    ${reviewedTrcs.map(trc => renderTRCCard(trc)).join('')}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderTRCCard(trc) {
+        const hasAnyComment = FIELDS.some(f => trc.fields[f]?.comments);
+        let html = `<div class="trc-card-inner ${hasAnyComment ? 'has-comment' : ''}">
+            <div class="trc-title-row">
+                <span class="trc-name">${esc(trc.title)}
+                    ${trc.ado_number ? `<span class="ado-badge">#${trc.ado_number}</span>` : ''}
+                    ${trc.trc_number ? `<span class="trc-badge">TRC-${trc.trc_number}</span>` : ''}
+                </span>
+                <span class="pill ${trc.approval_status === 'Approved' ? 'pass' : 'fail'}">${trc.approval_status || '—'}</span>
+                <span class="pill info">${esc(trc.bucket || '')}</span>
+                ${hasAnyComment ? '<span class="pill warn">Has Comments</span>' : ''}
+            </div>`;
+
+        FIELDS.forEach(f => {
+            const fd = trc.fields[f] || {};
+            if (!fd.status && !fd.comments) return;
+            const hasC = !!fd.comments;
+            const statusCls = fd.status === 'Approved' ? 'pass' : fd.status === 'NotApproved' ? 'fail' : 'info';
+
+            html += `<div class="field-row ${hasC ? 'has-comment' : ''}">
+                <div class="field-row-header">
+                    <span class="fname">${FIELD_LABELS[f]}</span>
+                    <span class="pill ${statusCls}">${fd.status || '—'}</span>
+                </div>`;
+
+            if (hasC) {
+                const genContent = f === 'tax_rule_change' ? trc.trc_description :
+                                   f === 'system_inference' ? trc.your_reasoning :
+                                   f === 'context' ? trc.description_of_change : '';
+                html += `<div class="field-sbs">
+                    <div class="field-pane gen">
+                        <div class="pane-lbl">🤖 System Generated</div>
+                        ${esc(genContent) || '<em style="color:#bbb">—</em>'}
+                    </div>
+                    <div class="field-pane cmt">
+                        <div class="pane-lbl">📝 Reviewer Comment</div>
+                        ${esc(fd.comments)}
+                    </div>
+                </div>`;
+                
+                // Show tax expert tags if any
+                if (fd.tags && fd.tags.length > 0) {
+                    const topIssues = new Set(Object.keys(DATA.summary.tag_analysis.top_issue_tags || {}));
+                    html += `<div class="field-tags">
+                        ${fd.tags.map(tag => {
+                            const severity = tag.severity || TAX_EXPERT_SEVERITY[tag.name] || 'medium';
+                            const isTopIssue = topIssues.has(tag.name);
+                            return `<span class="tax-tag ${severity} ${isTopIssue ? 'top-issue' : ''}" 
+                                          title="${tag.name} (${severity} severity)">
+                                ${tag.name}
+                            </span>`;
+                        }).join('')}
+                    </div>`;
+                }
+                
+                // Add Create Bug button for fields with comments
+                if (fd.comments && fd.comments.trim()) {
+                    html += `<button class="create-bug-btn" onclick="showBugModal('${trc.id}', '${f}')" title="Create ADO work item for this issue">
+                        Create ADO
+                    </button>`;
+                }
+            } else {
+                html += `<div class="field-no-comment">No comments</div>`;
+            }
+            html += `</div>`;
+        });
+
+        html += `</div>`;
+        return html;
+    }
+
+    // ── Populate filter dropdowns ──
+    function populateFilters() {
+        const eSelect = document.getElementById('fEntity');
+        const ySelect = document.getElementById('fTaxYear');
+        const rSelect = document.getElementById('fReviewer');
+        
+        // Clear existing options to prevent duplicates on refresh
+        eSelect.innerHTML = '<option value="">All Entities</option>';
+        ySelect.innerHTML = '<option value="">All Tax Years</option>';
+        rSelect.innerHTML = '<option value="">All Reviewers</option>';
+        
+        DATA.entities.forEach(e => {
+            eSelect.innerHTML += `<option value="${e}">${e}</option>`;
+        });
+        DATA.tax_years.forEach(y => {
+            ySelect.innerHTML += `<option value="${y}">${y}</option>`;
+        });
+        
+        // Populate reviewers from TRCs
+        const reviewers = new Set();
+        DATA.documents.forEach(doc => {
+            doc.trcs.forEach(trc => {
+                if (trc.reviewed_by && trc.reviewed_by.trim() && trc.reviewed_by !== 'null') {
+                    reviewers.add(trc.reviewed_by.trim());
+                }
+            });
+        });
+        const sortedReviewers = [...reviewers].sort();
+        sortedReviewers.forEach(r => {
+            rSelect.innerHTML += `<option value="${r}">${r}</option>`;
+        });
+        
+        updateDocDropdown();
+    }
+
+    function updateDocDropdown() {
+        const entity = document.getElementById('fEntity').value;
+        const year   = document.getElementById('fTaxYear').value;
+        const sel = document.getElementById('fDocument');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">All Documents</option>';
+        const seen = new Set();
+        DATA.documents.forEach(d => {
+            if (entity && d.tax_entity !== entity) return;
+            if (year && String(d.tax_year) !== year) return;
+            if (seen.has(d.document_id)) return;
+            seen.add(d.document_id);
+            sel.innerHTML += `<option value="${d.document_id}" ${d.document_id === current ? 'selected' : ''}>${shortDoc(d.document_title || d.document_id)}</option>`;
+        });
+    }
+
+    // ── Apply ──
+    function apply() {
+        const docs = getFilteredDocs();
+        const m = aggregate(docs);
+        renderTagAnalysis();
+        renderKPIs(m);
+        renderFieldBars(m);
+        renderDocCards(docs);
+    }
+
+    // ── Events ──
+    ['fEntity','fTaxYear','fReviewer','fDocument'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            if (id === 'fEntity' || id === 'fTaxYear') updateDocDropdown();
+            apply();
+        });
+    });
+    ['fDateFrom','fDateTo'].forEach(id => {
+        document.getElementById(id).addEventListener('change', apply);
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        ['fEntity','fTaxYear','fReviewer','fDocument'].forEach(id => document.getElementById(id).value = '');
+        ['fDateFrom','fDateTo'].forEach(id => document.getElementById(id).value = '');
+        updateDocDropdown();
+        apply();
+    });
+
+    // ── Refresh function (real-time: fetches from Cosmos and updates in-place) ──
+    async function refreshData() {
+        const btn = document.getElementById('refreshBtn');
+        btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite">&#x21bb;</span> Querying Cosmos...';
+        btn.disabled = true;
+
+        // Progress banner
+        let banner = document.getElementById('refreshBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'refreshBanner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;color:#fff;text-align:center;padding:10px 16px;font-size:0.9rem;font-weight:500;transition:background .3s;';
+            document.body.prepend(banner);
+        }
+        banner.style.background = '#1e40af';
+        banner.textContent = '⏳ Querying Cosmos DB for latest TRC data...';
+
+        try {
+            const res = await fetch('/api/refresh', { method: 'POST' });
+            const json = await res.json();
+
+            if (json.data) {
+                // Update dashboard in-place — no page reload
+                DATA = json.data;
+                document.getElementById('genDate').textContent = 'Generated: ' + new Date(DATA.generated_at).toLocaleDateString();
+                populateFilters();
+                apply();
+            }
+
+            if (json.no_data) {
+                banner.style.background = '#92400e';
+                banner.textContent = '⚠️ No TRC data in QA Cosmos yet — showing last cached snapshot (' + (DATA ? DATA.summary.total_trcs + ' TRCs' : 'none') + ').';
+                setTimeout(() => banner.remove(), 8000);
+            } else if (json.success) {
+                banner.style.background = '#15803d';
+                const count = json.data ? json.data.summary.total_trcs : 0;
+                banner.textContent = '✅ Live data loaded — ' + count + ' TRCs from ' + (json.data ? json.data.summary.total_documents : 0) + ' documents.';
+                setTimeout(() => banner.remove(), 5000);
+            } else {
+                banner.style.background = '#b91c1c';
+                banner.textContent = '❌ Refresh failed: ' + (json.message || json.error || 'Unknown error');
+                setTimeout(() => banner.remove(), 8000);
+            }
+        } catch (err) {
+            banner.style.background = '#b91c1c';
+            banner.textContent = '❌ Cannot reach server. Ensure server.py is running on port 5500.';
+            setTimeout(() => banner.remove(), 8000);
+        }
+
+        btn.textContent = '🔄 Refresh Live Data';
+        btn.disabled = false;
+    }
+
+    // ── Init: load cached JSON immediately, then auto-refresh from Cosmos ──
+    fetch('qa_triage_data.json')
+        .then(r => r.json())
+        .then(data => {
+            DATA = data;
+            document.getElementById('genDate').textContent = 'Generated: ' + new Date(data.generated_at).toLocaleDateString();
+            populateFilters();
+            apply();
+            // Auto-refresh from Cosmos after rendering cached data
+            refreshData();
+        })
+        .catch(err => {
+            document.getElementById('docList').innerHTML =
+                `<div style="padding:2rem;color:var(--danger)">Error loading data: ${err.message}</div>`;
+            // Still attempt live refresh even if cached file is missing
+            refreshData();
+        });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ADO BUG CREATION FUNCTIONALITY
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    // ADO Integration Configuration
+    // ADO credentials — set these via environment or replace at deploy time.
+    // For production, use the SWA deployment which proxies through Azure Functions.
+    const ADO_CONFIG = {
+        organization: '',   // e.g. 'your-org'
+        project: '',        // e.g. 'Your%20Project'
+        pat: '',            // Personal Access Token — DO NOT commit real values
+        baseUrl: ''         // e.g. 'https://dev.azure.com/your-org/Your%20Project/_apis/wit/workitems'
+    };
+
+    // Severity Assessment Logic (using standard ADO severity values)
+    function assessSeverity(tags, fieldName) {
+        const criticalTags = ['Form Identification Error', 'Calculation Change Missing', 'Line Reference Inaccuracy'];
+        const highTags = ['Change Type Misclassification', 'Change Completeness'];
+        const mediumTags = ['Context Irrelevance', 'Section Specificity', 'Clarity & Precision'];
+        
+        for (const tag of tags) {
+            if (criticalTags.includes(tag.name)) return '1 - Critical'; 
+            if (highTags.includes(tag.name)) return '2 - High';   
+            if (mediumTags.includes(tag.name)) return '3 - Medium';
+        }
+        return '4 - Low';
+    }
+
+    // Impact Assessment Logic  
+    function assessImpact(formName, fieldName) {
+        const highImpactForms = ['Schedule AATC', 'Form 40', 'PPT'];
+        const highImpactFields = ['tax_rule_change', 'context'];
+        
+        if (highImpactForms.some(form => formName.includes(form))) return '02 - High';
+        if (highImpactFields.includes(fieldName)) return '02 - High';
+        return '03 - Medium';
+    }
+
+    // AL Form Name Mapping (from ADO Bug Definition sheet)
+    const AL_FORM_NAMES = [
+        '2210AL', '40', '40-Sch D and E', '40-Sch OC', '40ES', '40NR', '40NR-Sch ABDE',
+        '40V', '4506A', '4952A', '8453', '8453OL', 'NOL-85', 'NOL-85A', 'ALEOO',
+        'Sch CR', '40-Sch A, B, and DC', 'BPT-V', 'PPT', 'Sch AATC', 'Sch AAC',
+        'AuthHdr (e-file)', 'RtrnHdr (e-file)', 'Sch W-2', 'W-2 (e-file)',
+        '1099-R (e-file)', 'BPT-NWI', 'Sch DS & HOF', 'Sch KRCC-I', 'Sch CP',
+        'Sch ATP', 'SCH HBC', 'Sch RS', 'QVLI Worksheet', 'Wks Fed Inc Ded (e-file)',
+        '740ES'
+    ];
+
+    // Extract form name from document title
+    function extractFormName(docTitle) {
+        if (!docTitle) return '';
+        // Document titles start with the form name, e.g. "PPT - Bus Privilege Tax..."
+        // or "Sch AATC - AL Accountability Tax Credit"
+        // First try exact match from the known list
+        for (const form of AL_FORM_NAMES) {
+            if (docTitle.startsWith(form + ' ') || docTitle.startsWith(form + '-') || docTitle === form) {
+                return form;
+            }
+        }
+        // Fallback: extract before " - " separator
+        const dashIdx = docTitle.indexOf(' - ');
+        if (dashIdx > 0) return docTitle.substring(0, dashIdx).trim();
+        // Fallback: parse from document ID (e.g. AL_2025_AL_PPT_...)
+        const parts = docTitle.split('_');
+        if (parts.length >= 4) return parts[3];
+        return docTitle;
+    }
+
+    // Create ADO Bug
+    async function createADOBug(bugData) {
+        const workItemData = [
+            { "op": "add", "path": "/fields/System.Title", "value": bugData.title },
+            { "op": "add", "path": "/fields/System.Description", "value": bugData.description },
+            { "op": "add", "path": "/fields/Microsoft.VSTS.TCM.ReproSteps", "value": bugData.reproSteps },
+            { "op": "add", "path": "/fields/Microsoft.VSTS.Common.Severity", "value": bugData.severity },
+            { "op": "add", "path": "/fields/Microsoft.VSTS.Common.Priority", "value": parseInt(bugData.priority) },
+            { "op": "add", "path": "/fields/EDMAgile.Application", "value": bugData.application },
+            { "op": "add", "path": "/fields/EDMAgile.Impact", "value": bugData.impact },
+            { "op": "add", "path": "/fields/Custom.DEF_DefectInProd", "value": bugData.defectInProd },
+            { "op": "add", "path": "/fields/Custom.DEF_EnvironmentFoundIn", "value": bugData.environmentFoundIn },
+            { "op": "add", "path": "/fields/Custom.Def_HowFound", "value": bugData.howFound },
+            { "op": "add", "path": "/fields/Custom.TaxForm", "value": bugData.taxForm },
+            { "op": "add", "path": "/fields/Custom.3f895184-c6ac-4e9a-b8b7-3730153b420c", "value": bugData.taxEntity },
+            { "op": "add", "path": "/fields/Custom.HRBReason", "value": "New" },
+            { "op": "add", "path": "/fields/Custom.HRBCalculatedPriority", "value": parseInt(bugData.priority) },
+            { "op": "add", "path": "/fields/Custom.BugOverriddenPriority", "value": 0 },
+            { "op": "add", "path": "/fields/Custom.BugOverriddenPriorityReason", "value": "NA" },
+            { "op": "add", "path": "/fields/Custom.HRBGHCPUsedforCodeGeneration", "value": "No" },
+            { "op": "add", "path": "/fields/Custom.HRBGHCPUsedforCodeValidation", "value": "No" },
+            { "op": "add", "path": "/fields/Custom.HRBGHCPUsedforTestCases", "value": "No" },
+            { "op": "add", "path": "/fields/Custom.HRBGHCPUsedforDocumentation", "value": "No" },
+            { "op": "add", "path": "/fields/Custom.HRBGHCPUsedforOtherPleaseExplain", "value": "No" },
+            { "op": "add", "path": "/fields/System.Tags", "value": bugData.tags },
+            { "op": "add", "path": "/fields/System.AreaPath", "value": "TRC Automation" },
+            { "op": "add", "path": "/fields/System.IterationPath", "value": "TRC Automation" }
+        ];
+
+        const response = await fetch(`${ADO_CONFIG.baseUrl}/$Bug?api-version=7.1`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json-patch+json',
+                'Authorization': `Basic ${btoa(':' + ADO_CONFIG.pat)}`
+            },
+            body: JSON.stringify(workItemData)
+        });
+
+        return response;
+    }
+
+    // Get System Value for Field
+    function getSystemValue(trc, fieldName) {
+        switch (fieldName) {
+            case 'context': return trc.description_of_change || '';
+            case 'system_inference': return trc.your_reasoning || '';
+            case 'tax_rule_change': return trc.trc_description || '';
+            case 'category': return trc.bucket || '';
+            default: return '';
+        }
+    }
+
+    // Find TRC by ID
+    function findTRCById(trcId) {
+        for (const doc of DATA.documents) {
+            for (const trc of doc.trcs) {
+                if (trc.id === trcId) return { trc, doc };
+            }
+        }
+        return null;
+    }
+
+    // Show Bug Creation Modal
+    function showBugModal(trcId, fieldName) {
+        const result = findTRCById(trcId);
+        if (!result) {
+            alert('TRC not found');
+            return;
+        }
+        
+        const { trc, doc } = result;
+        const fieldData = trc.fields[fieldName] || {};
+        const severity = assessSeverity(fieldData.tags || [], fieldName);
+        const impact = assessImpact(trc.title, fieldName);
+        const issueTags = (fieldData.tags || []).map(t => t.name).join('; ');
+        const formName = extractFormName(doc.document_title || doc.document_id);
+        
+        const systemValue = getSystemValue(trc, fieldName);
+        const comments = fieldData.comments || '';
+        const fieldDisplayName = fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        const modal = document.createElement('div');
+        modal.className = 'ado-modal';
+        modal.innerHTML = `
+            <div class="ado-modal-content">
+                <div class="ado-header">
+                    <h3>Create ADO</h3>
+                    <span class="ado-close" onclick="this.closest('.ado-modal').remove()">&times;</span>
+                </div>
+                <form id="adoBugForm">
+                    <div class="ado-field">
+                        <label>Title:</label>
+                        <input type="text" id="bugTitle" value="${trc.ado_number || ''}-${trc.trc_number || ''}-${fieldDisplayName}-${formName}" required>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Form Name:</label>
+                            <select id="bugTaxForm">
+                                ${AL_FORM_NAMES.map(f => `<option value="${f}" ${f === formName ? 'selected' : ''}>${f}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Tax Entity:</label>
+                            <input type="text" id="bugTaxEntity" value="${doc.tax_entity || 'AL'}">
+                        </div>
+                    </div>
+                    <div class="ado-field">
+                        <label>Description (preview — sent as formatted HTML to ADO):</label>
+                        <div class="desc-preview" id="bugDescPreview">
+                            <div class="desc-section">
+                                <div class="desc-grid">
+                                    <div class="desc-grid-item"><span class="gk">Form:</span> <span class="gv">${formName}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">ADO WI:</span> <span class="gv">#${trc.ado_number || 'N/A'}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">TRC #:</span> <span class="gv">${trc.trc_number || 'N/A'}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Field:</span> <span class="gv">${fieldDisplayName}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Entity:</span> <span class="gv">${doc.tax_entity}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Tax Year:</span> <span class="gv">${doc.tax_year}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Document:</span> <span class="gv">${doc.document_title || doc.document_id}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Classification:</span> <span class="gv">${trc.classification}</span></div>
+                                    <div class="desc-grid-item"><span class="gk">Confidence:</span> <span class="gv">${trc.confident}</span></div>
+                                </div>
+                            </div>
+                            <div class="desc-section">
+                                <div class="desc-label">System Generated Value</div>
+                                <div class="desc-highlight">${systemValue || '<em>No system value</em>'}</div>
+                            </div>
+                            <div class="desc-section">
+                                <div class="desc-label">Reviewer Comments</div>
+                                <div class="desc-comment">${comments || '<em>No comments</em>'}</div>
+                            </div>
+                            <div class="desc-section">
+                                <div class="desc-label">Tax Expert Tags</div>
+                                <div>${(fieldData.tags || []).map(t => '<span class="tag-pill">' + t.name + '</span>').join(' ') || '<em>None</em>'}</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="bugDescription" value="">
+                    </div>
+                    <div class="ado-field">
+                        <label>Repro Steps:</label>
+                        <textarea id="bugReproSteps" rows="4" required><div>1. Navigate to ${doc.document_title || doc.document_id}</div>
+<div>2. Review ${fieldDisplayName} field for ${formName}</div>
+<div>3. Compare system value with expected result</div>
+<div>4. Observe discrepancy: ${comments.substring(0, 100)}...</div></textarea>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Severity:</label>
+                            <select id="bugSeverity">
+                                <option value="1 - Critical" ${severity === '1 - Critical' ? 'selected' : ''}>1 - Critical</option>
+                                <option value="2 - High" ${severity === '2 - High' ? 'selected' : ''}>2 - High</option>
+                                <option value="3 - Medium" ${severity === '3 - Medium' ? 'selected' : ''}>3 - Medium</option>
+                                <option value="4 - Low" ${severity === '4 - Low' ? 'selected' : ''}>4 - Low</option>
+                            </select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Impact:</label>
+                            <select id="bugImpact">
+                                <option value="01 - Very High">01 - Very High</option>
+                                <option value="02 - High" ${impact === '02 - High' ? 'selected' : ''}>02 - High</option>
+                                <option value="03 - Medium" ${impact === '03 - Medium' ? 'selected' : ''}>03 - Medium</option>
+                                <option value="04 - Low">04 - Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Application:</label>
+                            <select id="bugApplication">
+                                <option value="TRC" selected>TRC</option>
+                            </select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Priority:</label>
+                            <select id="bugPriority">
+                                <option value="0" selected>0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ado-row">
+                        <div class="ado-field">
+                            <label>Defect in Prod:</label>
+                            <select id="bugDefectInProd">
+                                <option value="No" selected>No</option>
+                                <option value="Yes">Yes</option>
+                            </select>
+                        </div>
+                        <div class="ado-field">
+                            <label>Environment Found In:</label>
+                            <select id="bugEnvironment">
+                                <option value="Cert">Cert</option>
+                                <option value="Development">Development</option>
+                                <option value="LoadOps">LoadOps</option>
+                                <option value="Production">Production</option>
+                                <option value="QA" selected>QA</option>
+                                <option value="Staging/ERT/Pre-Prod">Staging/ERT/Pre-Prod</option>
+                                <option value="Training">Training</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ado-field">
+                        <label>How Was It Found:</label>
+                        <select id="bugHowFound">
+                            <option value="Manual" selected>Manual</option>
+                        </select>
+                    </div>
+                    <div class="ado-field">
+                        <label>Tags:</label>
+                        <input type="text" id="bugTags" value="${issueTags}; SystemGeneratedScaling; ${formName}; ${doc.tax_entity}; TY${doc.tax_year}">
+                    </div>
+                    <div class="ado-actions">
+                        <button type="button" class="ado-btn-cancel" onclick="this.closest('.ado-modal').remove()">Cancel</button>
+                        <button type="submit" class="ado-btn-create">Create ADO</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Handle form submission
+        document.getElementById('adoBugForm').onsubmit = async (e) => {
+            e.preventDefault();
+            // Build HTML description for ADO from the preview data
+            const formVal = document.getElementById('bugTaxForm').value;
+            const entityVal = document.getElementById('bugTaxEntity').value;
+            const titleVal = document.getElementById('bugTitle').value;
+            const descHtml = `<div><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-family:Segoe UI,sans-serif;font-size:13px;">`
+                + `<tr><td><b>Form</b></td><td>${formVal}</td><td><b>ADO WI</b></td><td>#${trc.ado_number || 'N/A'}</td></tr>`
+                + `<tr><td><b>TRC #</b></td><td>${trc.trc_number || 'N/A'}</td><td><b>Field</b></td><td>${fieldDisplayName}</td></tr>`
+                + `<tr><td><b>Entity</b></td><td>${entityVal}</td><td><b>Tax Year</b></td><td>${doc.tax_year}</td></tr>`
+                + `<tr><td><b>Document</b></td><td colspan="3">${doc.document_title || doc.document_id}</td></tr>`
+                + `<tr><td><b>Classification</b></td><td>${trc.classification}</td><td><b>Confidence</b></td><td>${trc.confident}</td></tr>`
+                + `</table></div>`
+                + `<div style="margin-top:8px"><b>System Generated Value:</b><br><span style="background:#fff3cd;padding:2px 6px">${systemValue}</span></div>`
+                + `<div style="margin-top:8px"><b>Reviewer Comments:</b><br><span style="background:#f8d7da;padding:2px 6px;font-style:italic">${comments}</span></div>`
+                + `<div style="margin-top:8px"><b>Tax Expert Tags:</b><br>${issueTags || 'None'}</div>`;
+            document.getElementById('bugDescription').value = descHtml;
+            await submitBug();
+        };
+    }
+
+    // Submit Bug to ADO
+    async function submitBug() {
+        const bugData = {
+            title: document.getElementById('bugTitle').value,
+            description: document.getElementById('bugDescription').value,
+            reproSteps: document.getElementById('bugReproSteps').value,
+            severity: document.getElementById('bugSeverity').value,
+            priority: document.getElementById('bugPriority').value,
+            application: document.getElementById('bugApplication').value,
+            impact: document.getElementById('bugImpact').value,
+            defectInProd: document.getElementById('bugDefectInProd').value,
+            environmentFoundIn: document.getElementById('bugEnvironment').value,
+            howFound: document.getElementById('bugHowFound').value,
+            taxForm: document.getElementById('bugTaxForm').value,
+            taxEntity: document.getElementById('bugTaxEntity').value,
+            tags: document.getElementById('bugTags').value
+        };
+        
+        const createBtn = document.querySelector('.ado-btn-create');
+        const originalText = createBtn.textContent;
+        createBtn.textContent = '🔄 Creating Bug...';
+        createBtn.disabled = true;
+        
+        try {
+            console.log('Creating ADO bug with data:', bugData);
+            const response = await createADOBug(bugData);
+            
+            if (response.ok) {
+                const workItem = await response.json();
+                console.log('ADO Bug created successfully:', workItem);
+                showSuccessModal(workItem);
+            } else {
+                const errorText = await response.text();
+                console.error('ADO API Error Response:', response.status, response.statusText, errorText);
+                alert(`Error creating bug:\nStatus: ${response.status} ${response.statusText}\nDetails: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('ADO API Error:', error);
+            alert('Network error creating bug: ' + error.message + '\n\nPlease check your network connection and try again.');
+        }
+        
+        createBtn.textContent = originalText;
+        createBtn.disabled = false;
+    }
+
+    // Show Success Modal
+    function showSuccessModal(workItem) {
+        document.querySelector('.ado-modal').remove();
+        
+        const modal = document.createElement('div');
+        modal.className = 'ado-modal';
+        modal.innerHTML = `
+            <div class="ado-modal-content ado-success">
+                <div class="ado-header">
+                    <h3>✅ ADO Bug Created Successfully!</h3>
+                </div>
+                <div class="ado-success-content">
+                    <p><strong>Work Item ID:</strong> <code>${workItem.id}</code></p>
+                    <p><strong>Title:</strong> ${workItem.fields['System.Title']}</p>
+                    <p><strong>Severity:</strong> ${workItem.fields['Microsoft.VSTS.Common.Severity']}</p>
+                    <p><strong>Priority:</strong> ${workItem.fields['Microsoft.VSTS.Common.Priority']}</p>
+                    <p><strong>State:</strong> ${workItem.fields['System.State']}</p>
+                    <p><strong>View in ADO:</strong> <a href="${workItem._links.html.href}" target="_blank">Open Work Item #${workItem.id}</a></p>
+                </div>
+                <div class="ado-actions">
+                    <button onclick="window.open('${workItem._links.html.href}', '_blank')" class="ado-btn-cancel">🔗 View in ADO</button>
+                    <button onclick="this.closest('.ado-modal').remove();" class="ado-btn-create">Back to Dashboard</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    </script>
+</body>
+</html>

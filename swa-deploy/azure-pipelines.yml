@@ -1,0 +1,95 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Azure DevOps Pipeline: Deploy QA Triage Dashboard
+# Deploys to Azure Static Web Apps with Python Azure Functions API
+# ═══════════════════════════════════════════════════════════════════════
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - Triaging-Dashboard/swa-deploy/**
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: tca-dashboard-secrets  # Contains ADO_PAT, COSMOS_ENDPOINT, COSMOS_KEY
+
+stages:
+  # ── Stage 1: Deploy SWA ──
+  - stage: Deploy
+    displayName: 'Deploy QA Triage Dashboard'
+    jobs:
+      - job: DeploySWA
+        displayName: 'Deploy to Azure Static Web Apps'
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: 'Use Python 3.11'
+
+          - script: |
+              cd Triaging-Dashboard/swa-deploy/api
+              pip install -r requirements.txt
+            displayName: 'Install API dependencies'
+
+          - task: AzureStaticWebApp@0
+            inputs:
+              app_location: 'Triaging-Dashboard/swa-deploy'
+              api_location: 'Triaging-Dashboard/swa-deploy/api'
+              output_location: ''
+              azure_static_web_apps_api_token: $(AZURE_SWA_DEPLOYMENT_TOKEN)
+            displayName: 'Deploy to Azure Static Web Apps'
+
+  # ── Stage 2: Refresh Data (scheduled or manual) ──
+  - stage: RefreshData
+    displayName: 'Refresh QA Data from Cosmos'
+    dependsOn: []
+    condition: or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual'))
+    jobs:
+      - job: RefreshCosmos
+        displayName: 'Export fresh data from Cosmos DB'
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: 'Use Python 3.11'
+
+          - script: |
+              pip install azure-cosmos python-dateutil
+            displayName: 'Install Cosmos SDK'
+
+          - script: |
+              cd Triaging-Dashboard
+              python export_qa_triage.py
+            displayName: 'Run Cosmos export script'
+            env:
+              COSMOS_ENDPOINT: $(COSMOS_ENDPOINT)
+              COSMOS_KEY: $(COSMOS_KEY)
+
+          - script: |
+              cp Triaging-Dashboard/qa_triage_data.json Triaging-Dashboard/swa-deploy/qa_triage_data.json
+              echo "Data file updated"
+            displayName: 'Copy refreshed data to SWA deploy folder'
+
+          - task: AzureStaticWebApp@0
+            inputs:
+              app_location: 'Triaging-Dashboard/swa-deploy'
+              api_location: 'Triaging-Dashboard/swa-deploy/api'
+              output_location: ''
+              azure_static_web_apps_api_token: $(AZURE_SWA_DEPLOYMENT_TOKEN)
+            displayName: 'Redeploy with fresh data'
+
+# ── Schedule: daily refresh at 6 AM UTC ──
+schedules:
+  - cron: '0 6 * * *'
+    displayName: 'Daily data refresh'
+    branches:
+      include:
+        - main
+    always: true

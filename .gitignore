@@ -1,0 +1,62 @@
+# ── Environment ──
+.env
+.env.local
+.env.*.local
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# ── Data files (contain live data, regenerated from Cosmos) ──
+qa_triage_data.json
+swa-deploy/qa_triage_data.json
+triage_data.json
+trc_deep_dive.json
+trc_feedback_analysis.json
+trc_detailed_feedback.json
+prod_feedback_classified.json
+triaging_metrics.json
+document_metrics.json
+debug.log
+*.xlsx
+
+# ── Exploration/debugging scripts (contain hardcoded credentials) ──
+# These are one-off Cosmos exploration scripts, not part of the dashboard.
+explore_*.py
+check_*.py
+list_containers.py
+trc_deep_dive.py
+document_metrics.py
+document_metrics_v2.py
+document_metrics_v3.py
+triaging_metrics.py
+refresh_metrics.py
+triage_api.py
+triage_clustering.py
+fix_triage_add_trc.py
+export_prod_feedback.py
+
+# ── Older dashboard iterations (superseded) ──
+triaging_dashboard.html
+triaging_dashboard_v2.html
+triage_view.html
+triage_view_minimal.html
+trc_comment_review.html
+custom_triage_dashboard.html
+qa_triage_dashboard_static.html
+/index.html
+
+# ── OS / Editor ──
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
