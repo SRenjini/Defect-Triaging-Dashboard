@@ -1146,7 +1146,7 @@
 
     // ── Aggregate metrics from filtered docs (excluding NOT_TRC) ──
     function aggregate(docs) {
-        let totalTRCs = 0, totalChanges = 0, totalReviewed = 0, totalApproved = 0, totalWithComments = 0;
+        let identifiedTRCs = 0, totalChanges = 0, totalReviewed = 0, totalApproved = 0, totalWithComments = 0;
         let fieldStats = {};
         FIELDS.forEach(f => fieldStats[f] = { approved:0, total:0, withComments:0 });
         let allTags = {};
@@ -1154,10 +1154,10 @@
         docs.forEach(d => {
             // Only count actual TRCs (exclude NOT_TRC)
             const actualTrcs = (d.trcs || []).filter(t => t.classification !== 'NOT_TRC' && t.classification !== '');
-            totalTRCs += actualTrcs.length;
+            identifiedTRCs += actualTrcs.length;  // all non-NOT_TRC (scope)
             totalChanges += (d.trcs || []).length;
             const reviewedActual = actualTrcs.filter(t => t.review_status === 'FirstReviewCompleted');
-            totalReviewed += reviewedActual.length;
+            totalReviewed += reviewedActual.length;  // only reviewed count as done
             reviewedActual.forEach(t => {
                 const trcField = t.fields?.tax_rule_change || {};
                 if (trcField.status === 'Approved') totalApproved++;
@@ -1184,7 +1184,8 @@
 
         return {
             docs: docs.length,
-            trcs: totalTRCs,
+            trcs: totalReviewed,
+            identified: identifiedTRCs,
             totalChanges,
             reviewed: totalReviewed,
             approved: totalApproved,
@@ -1279,12 +1280,12 @@
             <div class="kpi accent">
                 <div class="val">${m.docs}</div>
                 <div class="lbl">Documents</div>
-                <div class="sub">${m.trcs} actual TRCs (${m.totalChanges} total changes)</div>
+                <div class="sub">${m.identified} identified &bull; ${m.totalChanges} total changes</div>
             </div>
             <div class="kpi success">
-                <div class="val">${m.reviewed}</div>
-                <div class="lbl">Reviews Completed</div>
-                <div class="sub">of ${m.trcs} TRCs</div>
+                <div class="val">${m.trcs}</div>
+                <div class="lbl">TRCs Reviewed</div>
+                <div class="sub">${m.identified - m.trcs} pending review</div>
             </div>
             <div class="kpi ${passTarget ? 'success' : 'danger'}">
                 <div class="val">${acceptanceRate}%</div>

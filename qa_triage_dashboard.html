@@ -527,18 +527,19 @@
     // ── Aggregate metrics across filtered docs ──
     // Only counts actual TRCs (POTENTIAL_TRC, TRC_REQUIRED); excludes NOT_TRC
     function aggregate(docs) {
-        let totalTrcs = 0, totalChanges = 0, firstReview = 0, descApproved = 0, descWithComments = 0;
+        let totalTrcs = 0, identifiedTrcs = 0, totalChanges = 0, firstReview = 0, descApproved = 0, descWithComments = 0;
         const fs = {};
         FIELDS.forEach(f => fs[f] = {approved:0, not_approved:0, with_comments:0, total_reviewed:0});
 
         docs.forEach(d => {
             // Client-side filtering: count only actual TRCs
             const actualTrcs = d.trcs.filter(t => t.classification !== 'NOT_TRC' && t.classification !== '');
-            totalTrcs += actualTrcs.length;
+            identifiedTrcs += actualTrcs.length;  // all non-NOT_TRC (scope/pending)
             totalChanges += d.trcs.length;
-            // Metrics from reviewed actual TRCs
+            // Metrics from reviewed actual TRCs only
             const reviewedActual = actualTrcs.filter(t => t.review_status === 'FirstReviewCompleted');
             firstReview += reviewedActual.length;
+            totalTrcs += reviewedActual.length;  // only reviewed TRCs count as 'actual'
             reviewedActual.forEach(t => {
                 const trcField = t.fields?.tax_rule_change || {};
                 if (trcField.status === 'Approved') descApproved++;
@@ -560,7 +561,7 @@
         const approvedFields = FIELDS.reduce((s,f) => s + fs[f].approved, 0);
         const allFieldApproval = pct(approvedFields, totalFields);
 
-        return { totalTrcs, totalChanges, firstReview, descApproved, descWithComments, descNoComment,
+        return { totalTrcs, identifiedTrcs, totalChanges, firstReview, descApproved, descWithComments, descNoComment,
                  descAcceptance, totalFields, approvedFields, allFieldApproval, fs, docs: docs.length };
     }
 
@@ -574,8 +575,8 @@
             </div>
             <div class="kpi accent">
                 <div class="val">${m.totalTrcs}</div>
-                <div class="lbl">Actual TRCs</div>
-                <div class="sub">${m.totalChanges} total changes detected</div>
+                <div class="lbl">TRCs Reviewed</div>
+                <div class="sub">${m.identifiedTrcs} identified &bull; ${m.identifiedTrcs - m.totalTrcs} pending review</div>
             </div>
             <div class="kpi green">
                 <div class="val">${m.firstReview}</div>
